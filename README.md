@@ -2,10 +2,10 @@
 # Hammerspoon Config
 
 ## Implemented Func
-- Window Manager, like Magnet
-- Mouse Scroll Reverse, like Mos
+- Window Manager
+- Mouse Scroll Reverse
 - Wifi Changed: Mute Macbook Speaker
-- Fast Launch Specific App by combo keys, like Karabiner Elements
+- Fast Launch Specific App by combo keys
 
 ## Ref
 - keyboard window manager https://github.com/scottwhudson/Lunette/
