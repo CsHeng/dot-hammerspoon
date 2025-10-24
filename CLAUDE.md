@@ -4,115 +4,118 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Hammerspoon Configuration
 
-This is a Hammerspoon configuration repository for macOS automation. Hammerspoon is a desktop automation tool for macOS that allows extensive customization through Lua scripting.
+This is a modular Hammerspoon configuration repository for macOS automation. Hammerspoon is a desktop automation tool for macOS that allows extensive customization through Lua scripting.
 
-### Core Components
+## Development Commands
 
-#### `init.lua` - Entry Point
-- Main configuration loader that sets up hotkey bindings
-- Implements lazy loading for performance optimization
-- Sets up system-wide keyboard shortcuts for Hammerspoon management
-- Key bindings: `ctrl+cmd+alt+R` for reload, `ctrl+cmd+alt+H` for console
+### Configuration Management
+```bash
+# Reload Hammerspoon configuration
+# Use hotkey: ⌃⌘⌥R
 
-#### Key Modules
+# Open Hammerspoon console for debugging
+# Use hotkey: ⌃⌘⌥H
 
-1. **Window Management** (`window.lua`)
-   - Magnet-style window management with keyboard shortcuts
-   - Supports left/right/top/bottom halves, corners, maximize, center, and original positions
-   - Multi-monitor support with cross-display window movement
-   - Smart window positioning that avoids cycling between displays
+# Enable debug logging
+# In Hammerspoon console: require("core.logger").setLogLevel("debug")
 
-2. **Application Launcher** (`key_bindings.lua`)
-   - Fast app launching with `cmd+alt+[KEY]` combinations
-   - Media control with `ctrl+cmd+alt+[ARROW_KEYS/SPACE]`
-   - Application restart functionality for problematic apps
-   - Double-press protection for `cmd+Q` to prevent accidental quits
-   - Mouse button customization (Logitech G603/GPW support)
+# Set log level to warning (default)
+# In Hammerspoon console: require("core.logger").setLogLevel("warning")
+```
 
-3. **KeyCastr** (`keycastr.lua`)
-   - Keystroke visualizer with customizable appearance
-   - Supports different display modes and continuous input
-   - Configurable fade effects and positioning
-   - Optional mouse click visualization
+### Testing Changes
+- Test hotkey changes by reloading configuration (⌃⌘⌥R)
+- Use Hammerspoon console (⌃⌘⌥H) for live debugging
+- Check Console.app for Hammerspoon-specific messages
+- Verify module loading status in console
 
-4. **WiFi Automation** (`wifi.lua`)
-   - Automatic audio muting on specific networks
-   - Network change notifications
-   - Location services integration for network monitoring
+## Architecture
 
-5. **Utilities** (`utils.lua`)
-   - Common functions used across modules
-   - Application management (toggle, restart)
-   - Browser detection functions
-   - Audio device management
-   - macOS notification system
+### Modular Loading System
 
-6. **Mouse Control** (`mouse_reverse_scroll.lua`)
-   - Reverses mouse wheel scroll direction while preserving trackpad behavior
-   - Event-based filtering to distinguish between mouse and trackpad input
+The configuration uses a sophisticated module dependency system defined in `core/init_system.lua`:
 
-7. **Expose** (`expose.lua`)
-   - Window expose functionality with thumbnail previews
-   - Cross-space window visibility
-   - Lazy-loaded for performance optimization
+```
+Module Loading Order:
+1. Core modules (no dependencies)
+   - utils.app_utils
+   - utils.display_utils
+   - utils.notification_utils
+   - utils.window_utils
+
+2. Feature modules (depend on utils)
+   - modules.window_management
+   - modules.app_launcher
+   - modules.media_controls
+   - modules.mouse_management
+   - modules.wifi_automation
+   - modules.keystroke_visualizer
+
+3. Lazy-loaded modules
+   - modules.window_expose (loaded on first use)
+```
+
+### Key Architectural Patterns
+
+**Configuration System**: All settings centralized in `config/` directory with hot reloading. The `core/config_loader.lua` provides dot-notation access to nested configuration values.
+
+**Module Registration**: Modules declare dependencies and are loaded in correct order by `core/init_system.lua`. Each module follows the pattern `local M = {}` and returns `M`.
+
+**Logging System**: Centralized logging through `core/logger.lua` with levels: debug, info, warning, error. Default level is "warning" for quiet operation.
+
+**Event-Driven Architecture**: Heavy use of Hammerspoon's `hs.hotkey.bind()` for keyboard shortcuts and event taps for mouse/scroll events.
+
+### Critical Integration Points
+
+**Window Management**: Cross-display movement logic spans `modules/window_management.lua`, `utils/window_utils.lua`, and `utils/display_utils.lua`. Edge detection prevents display cycling while enabling smart cross-monitor positioning.
+
+**Application Management**: `modules/app_launcher.lua` uses `utils/app_utils.lua` for reliable app detection and launching via bundle IDs rather than app names.
+
+**Configuration Loading**: `init.lua` loads core modules first, then feature modules in dependency order. Hotkey bindings are centralized in `config/hotkeys.lua`.
+
+**WiFi Automation**: `modules/wifi_automation.lua` integrates with macOS location services for reliable network detection and automatic audio muting on work networks.
 
 ### Key Modifier Patterns
 
-- **Launcher Modifier**: `cmd+alt` for app switching
-- **Hyper**: `ctrl+alt` for window management
-- **Media Control**: `ctrl+cmd+alt` for media controls
-- **System Control**: `ctrl+cmd+alt` for system functions
+- **Window Management**: `ctrl+alt` (hyper modifier) for positioning
+- **App Launcher**: `cmd+alt` modifier for app switching
+- **Media Control**: `ctrl+cmd+alt` modifier for media controls
+- **System Control**: `ctrl+cmd+alt` modifier for system functions
 
-### Development Commands
+## Module Development Guidelines
 
-#### Reloading Configuration
-```bash
-# Hammerspoon automatically reloads when init.lua is saved
-# Manual reload via hotkey: ctrl+cmd+alt+R
-# Open console: ctrl+cmd+alt+H
+### Adding New Modules
+
+1. Create module file in `modules/` or `utils/` following existing patterns
+2. Add configuration options in appropriate `config/` file
+3. Declare dependencies in `core/init_system.lua` module_dependencies table
+4. Use logger: `local log = require("core.logger").getLogger("module_name")`
+5. Follow module pattern: `local M = {}; function M.init(); return M`
+
+### Configuration Access
+
+```lua
+-- Access configuration values with fallback
+local config = require("core.config_loader")
+local enabled = config.get("section.setting", default_value)
+
+-- Set configuration values
+config.set("section.setting", new_value)
 ```
 
-#### Testing Changes
-- Test hotkey changes by reloading configuration
-- Use Hammerspoon console (`ctrl+cmd+alt+H`) for live debugging
-- Check logs in Console.app for Hammerspoon-specific messages
+### Hotkey Management
 
-### Architecture Patterns
+All hotkeys are defined in configuration files and bound through the module system. Use consistent modifier patterns and avoid conflicts with system hotkeys.
 
-#### Lazy Loading
-- The expose module is lazy-loaded to improve startup performance
-- Controlled by `exposeLoaded` flag and `loadExpose()` function
+### Error Handling
 
-#### Event-Based Architecture
-- Heavy use of `hs.hotkey.bind()` for keyboard shortcuts
-- Event tap filters for mouse and scroll wheel events
-- WiFi watcher for network state changes
+- Use pcall() for operations that might fail
+- Log errors with context: `log:e("Operation failed: " .. tostring(error))`
+- Graceful degradation when optional dependencies fail
 
-#### Utility Functions
-- All utilities are exported through a module pattern (`local M = {}`)
-- Common functions shared across modules to avoid code duplication
-- Logging system using `hs.logger` for debugging
+## Performance Considerations
 
-### Configuration Notes
-
-#### Window Management Logic
-- Smart edge detection prevents display cycling
-- Original frame preservation for restore functionality
-- Quarter-screen positioning with intuitive key mapping (HJKL for corners)
-
-#### WiFi Network Handling
-- Automatic muting for predefined work networks
-- Location services workaround for network detection
-- Persistent notifications for network state changes
-
-#### Performance Considerations
-- Lazy loading of heavy modules
-- Event filtering to minimize unnecessary processing
-- Careful memory management with window frame storage
-
-### File Structure Conventions
-
-- All `.lua` files should have appropriate shebang and encoding
-- Use proper module pattern with `local M = {}` and `return M`
-- Include descriptive comments for complex functionality
-- Follow consistent naming conventions (camelCase for functions, snake_case for variables)
+- **Lazy Loading**: Heavy modules (window_expose) load only when first used
+- **Event Filtering**: Filter unnecessary events to minimize processing
+- **Memory Management**: Periodic cleanup of cached data (window frames, etc.)
+- **Resource Cleanup**: Proper cleanup of event taps and timers in module cleanup functions
