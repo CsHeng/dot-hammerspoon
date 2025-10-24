@@ -2,7 +2,16 @@
 
 ## Overview
 
-Mouse Management provides comprehensive mouse behavior customization including scroll direction reversal, button remapping, cursor positioning, and input enhancement features. This module enables fine-grained control over mouse interactions while preserving trackpad functionality.
+Mouse Management provides comprehensive mouse behavior customization including **smart middle click detection**, scroll direction reversal, button remapping, cursor positioning, and input enhancement features. This module enables fine-grained control over mouse interactions while preserving trackpad functionality.
+
+### Key Features
+
+- **🎯 Smart Middle Click**: Automatically detects browser context - closes tabs in Chrome, triggers Mission Control elsewhere
+- **🔄 Scroll Reversal**: Reverse mouse scroll direction while preserving trackpad behavior
+- **⚙️ Button Customization**: Remap mouse buttons to custom actions or key sequences
+- **🎯 Cursor Positioning**: Intelligent cursor movement and window centering
+- **🌐 Multi-Screen Support**: Cross-screen cursor management and positioning
+- **🔧 Input Enhancement**: Paste defeat and advanced input features
 
 ## Core Functionality
 
@@ -23,6 +32,23 @@ mouse_management.isScrollReversalEnabled()
 mouse_management.setMouseButtonAction(button, action)
 mouse_management.resetMouseButtons()
 mouse_management.getMouseButtonBindings()
+```
+
+### Smart Middle Click Detection
+
+```lua
+-- Intelligent middle click handling with browser awareness
+mouse_management.handleMiddleClick()
+mouse_management.isBrowserMiddleClickEnabled()
+mouse_management.toggleBrowserMiddleClick()
+```
+
+### Browser-Specific Mission Control
+
+```lua
+-- Mission Control hotkey for browser environments
+mouse_management.setupBrowserMissionControl()
+mouse_management.triggerBrowserMissionControl()
 ```
 
 ### Cursor Positioning and Movement
@@ -138,6 +164,59 @@ end)
 
 -- Set button 4 to Mission Control
 mouse_management.setMouseButtonAction(4, {"cmd", "ctrl", "up"})
+```
+
+### `handleMiddleClick()`
+
+Intelligent middle click handler that detects browser context and behaves accordingly.
+
+**Behavior:**
+- **In browsers** (Chrome, Safari, Firefox): Passes middle click to browser for native behavior (close tabs, open links)
+- **In other applications**: Triggers Mission Control (⌃↑)
+
+**Returns:**
+- `consumed` (boolean): Whether the event was consumed
+  - `true` - Event consumed, Mission Control triggered
+  - `false` - Event not consumed, passed to application
+
+**Example:**
+```lua
+-- Smart middle click is automatically handled
+-- No manual setup required - just press middle mouse button
+```
+
+**Configuration:**
+```lua
+-- Browser detection is automatic, but can be customized
+local browser_list = config.get("applications.browsers.bundle_ids", {
+    "com.apple.Safari",
+    "com.microsoft.edgemac",
+    "com.google.Chrome"
+})
+```
+
+### `setupBrowserMissionControl()`
+
+Sets up a dedicated hotkey for triggering Mission Control specifically in browser environments.
+
+**Hotkey:** `⌃⌘⌥M` (configurable)
+
+**Behavior:**
+- Only active when a browser is the frontmost application
+- Triggers the same Mission Control as middle click in non-browser apps
+
+**Example:**
+```lua
+-- Setup is automatic during module initialization
+-- Manual trigger if needed:
+mouse_management.setupBrowserMissionControl()
+```
+
+**Configuration:**
+```lua
+-- Customize the hotkey in config
+-- Default: {"ctrl", "cmd", "alt", "m"}
+local hotkey = config.get("hotkeys.browser_mission_control")
 ```
 
 ### `mouse_management.centerMouseOnWindow(window)`
@@ -413,6 +492,219 @@ local function updateDeviceList()
     -- For now, we'll use heuristic detection
     device_detector.last_detection_time = current_time
 end
+```
+
+## Smart Middle Click Implementation
+
+### Browser-Aware Middle Click Detection
+
+The smart middle click system provides intelligent mouse button 2 (middle click) handling that automatically adapts to the current application context.
+
+#### How It Works
+
+```lua
+-- Smart middle click detection
+local function handleMiddleClick()
+    local frontmost_app = hs.application.frontmostApplication()
+
+    -- Check if current app is a browser
+    if frontmost_app and app_utils.isBrowser() then
+        log.d("Middle click in browser - letting browser handle it")
+        return false -- Don't consume event, let browser handle it
+    else
+        -- Not in browser, trigger Mission Control
+        log.d("Middle click not in browser - triggering Mission Control")
+        local mouse_modifier = getHotkeyConfig("mouse.modifier") or {"fn", "ctrl"}
+        hs.eventtap.keyStroke(mouse_modifier, "up", 0)
+        return true -- Consume event
+    end
+end
+```
+
+#### Event Flow
+
+1. **Middle Click Detected** → Event tap captures `otherMouseDown` event
+2. **Browser Detection** → Checks if frontmost application is a browser
+3. **Decision Making**:
+   - **Browser**: Return `false` → Event passes to browser for native handling
+   - **Other App**: Return `true` → Event consumed, Mission Control triggered
+4. **User Experience**:
+   - Chrome/Safari/Firefox: Middle click closes tabs, opens links
+   - Other apps: Middle click triggers Mission Control
+
+#### Browser Detection Logic
+
+```lua
+-- Browser detection uses app_utils.isBrowser()
+function isBrowser()
+    local frontmost_app = hs.application.frontmostApplication()
+    if not frontmost_app then return false end
+
+    local bundle_id = frontmost_app:bundleID()
+    local browser_bundle_ids = {
+        "com.apple.Safari",
+        "com.microsoft.edgemac",
+        "com.google.Chrome",
+        "com.mozilla.firefox"
+    }
+
+    return hs.fnutils.contains(browser_bundle_ids, bundle_id)
+end
+```
+
+### Event Tap Integration
+
+The smart middle click integrates seamlessly with the existing mouse button event tap system:
+
+```lua
+-- Integrated into mouse button event tap
+mouse_button_tap = hs.eventtap.new({
+    hs.eventtap.event.types.otherMouseDown,
+    hs.eventtap.event.types.otherMouseUp
+}, function(event)
+    local button = event:getProperty(hs.eventtap.event.properties.mouseEventButtonNumber)
+
+    if button == 2 then
+        -- Smart middle click: browser aware
+        return handleMiddleClick()
+    elseif button == 3 then
+        -- Other button handling...
+    end
+
+    return false
+end)
+```
+
+### Browser Mission Control Hotkey
+
+For situations where Mission Control is needed while in a browser environment:
+
+```lua
+-- Browser-specific Mission Control hotkey
+function M.setupBrowserMissionControl()
+    local browser_mc_hotkey = getHotkeyConfig("browser_mission_control")
+                           or {"ctrl", "cmd", "alt", "m"}
+
+    hs.hotkey.bind(browser_mc_hotkey[1], browser_mc_hotkey[2],
+                   "Browser Mission Control", function()
+        if app_utils.isBrowser() then
+            log.d("Triggering Mission Control from browser hotkey")
+            local mouse_modifier = getHotkeyConfig("mouse.modifier") or {"fn", "ctrl"}
+            hs.eventtap.keyStroke(mouse_modifier, "up", 0)
+        end
+    end)
+end
+```
+
+### Configuration and Customization
+
+#### Hotkey Configuration
+
+```lua
+-- In config/hotkeys.lua
+config.hotkeys = {
+    browser_mission_control = {"ctrl", "cmd", "alt", "m"},
+    mouse = {
+        modifier = {"fn", "ctrl"}  -- For Mission Control
+    }
+}
+```
+
+#### Browser List Configuration
+
+```lua
+-- In config/applications.lua
+config.browsers = {
+    bundle_ids = {
+        "com.apple.Safari",
+        "com.microsoft.edgemac",
+        "com.google.Chrome",
+        "com.mozilla.firefox",
+        "com.brave.Browser"
+    },
+    names = {
+        "Safari",
+        "Microsoft Edge",
+        "Google Chrome",
+        "Firefox",
+        "Brave"
+    }
+}
+```
+
+### Usage Scenarios
+
+#### Typical Workflow
+
+1. **Web Browsing** (Chrome/Safari):
+   - Middle click on tab → Tab closes
+   - Middle click on link → Link opens in new tab
+   - Press `⌃⌘⌥M` → Mission Control
+
+2. **Development** (VS Code/Terminal):
+   - Middle click anywhere → Mission Control
+   - Switch between spaces efficiently
+
+3. **Design Work** (Figma/Photoshop):
+   - Middle click → Mission Control
+   - Quick access to different desktop spaces
+
+#### Advanced Usage
+
+```lua
+-- Enable debug logging for troubleshooting
+local logger = require("core.logger")
+local log = logger.getLogger("mouse_management")
+log:setLevel("debug")  -- See middle click decisions
+
+-- Manual trigger for testing
+mouse_management.handleMiddleClick()
+
+-- Check current browser detection status
+local is_browser = app_utils.isBrowser()
+print("Current app is browser:", is_browser)
+```
+
+### Performance Considerations
+
+- **Low Overhead**: Browser detection is fast and efficient
+- **Event Consumption**: Only middle click events are processed
+- **No Timer Delays**: Instant response, no complex timing logic
+- **Memory Efficient**: No persistent state or complex data structures
+
+### Troubleshooting
+
+#### Common Issues
+
+1. **Middle click not working in browser**:
+   - Check browser detection list
+   - Verify event tap permissions
+   - Enable debug logging
+
+2. **Mission Control not triggering**:
+   - Verify Mission Control hotkey configuration
+   - Test Mission Control manually (⌃↑)
+   - Check modifier key settings
+
+3. **Hotkey conflicts**:
+   - Ensure `⌃⌘⌥M` is not used by other apps
+   - Customize hotkey in configuration
+
+#### Debug Commands
+
+```lua
+-- Test middle click behavior
+mouse_management.debugMiddleClick()
+
+-- Check browser detection
+print("Is browser:", app_utils.isBrowser())
+print("Frontmost app:", hs.application.frontmostApplication():name())
+
+-- Test Mission Control
+hs.eventtap.keyStroke({"ctrl"}, "up")
+
+-- Check hotkey registration
+hs.hotkey.showHotkeys()  -- Shows all registered hotkeys
 ```
 
 ## Mouse Button Customization

@@ -103,7 +103,7 @@ end
 function M.sendAlert(message, duration)
     duration = duration or 2
     hs.alert.show(message, duration)
-    log.d(string.format("Alert sent: %s (duration: %ds)", message, duration))
+    log.d(string.format("Alert sent: %s (duration: %.1fs)", message, duration))
 end
 
 -- Audio control with notification

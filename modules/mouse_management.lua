@@ -22,6 +22,23 @@ local function getAppConfig(path)
     return config.get("applications." .. path)
 end
 
+-- Smart middle click detection with browser awareness
+local function handleMiddleClick()
+    local frontmost_app = hs.application.frontmostApplication()
+
+    -- Check if current app is a browser
+    if frontmost_app and app_utils.isBrowser() then
+        log.d("Middle click in browser - letting browser handle it")
+        return false -- Don't consume the event, let browser handle it
+    else
+        -- Not in browser, trigger Mission Control
+        log.d("Middle click not in browser - triggering Mission Control")
+        local mouse_modifier = getHotkeyConfig("mouse.modifier") or {"fn", "ctrl"}
+        hs.eventtap.keyStroke(mouse_modifier, "up", 0)
+        return true -- Consume the event
+    end
+end
+
 -- Initialize mouse management
 function M.init()
     log.i("Initializing mouse management module")
@@ -34,6 +51,9 @@ function M.init()
 
     -- Setup mouse utility hotkeys
     M.setupMouseHotkeys()
+
+    -- Setup browser-specific Mission Control hotkey
+    M.setupBrowserMissionControl()
 
     -- Setup paste defeat
     M.setupPasteDefeat()
@@ -77,11 +97,9 @@ function M.setupMouseButtons()
     }, function(event)
         local button = event:getProperty(hs.eventtap.event.properties.mouseEventButtonNumber)
 
-        if button == 2 and not app_utils.isBrowser() then
-            -- Back button - show mission control equivalent
-            log.d("Mouse button 2: Mission control")
-            hs.eventtap.keyStroke(mouse_modifier, "up", 0)
-            return true
+        if button == 2 then
+            -- Smart middle click: browser aware
+            return handleMiddleClick()
         elseif button == 3 then
             -- Forward button - show application windows
             log.d("Mouse button 3: Application windows")
@@ -140,6 +158,24 @@ function M.setupPasteDefeat()
     end)
 
     log.i("Setup paste defeat hotkey")
+end
+
+-- Setup browser-specific Mission Control hotkey
+function M.setupBrowserMissionControl()
+    -- Hotkey for Mission Control that works in browsers
+    local browser_mc_hotkey = getHotkeyConfig("browser_mission_control") or {"ctrl", "cmd", "alt", "m"}
+
+    hs.hotkey.bind(browser_mc_hotkey[1], browser_mc_hotkey[2], "Browser Mission Control", function()
+        if app_utils.isBrowser() then
+            log.d("Triggering Mission Control from browser hotkey")
+            local mouse_modifier = getHotkeyConfig("mouse.modifier") or {"fn", "ctrl"}
+            hs.eventtap.keyStroke(mouse_modifier, "up", 0)
+        else
+            log.d("Not in browser, ignoring Mission Control hotkey")
+        end
+    end)
+
+    log.i("Setup browser Mission Control hotkey")
 end
 
 -- Adjust mouse speed

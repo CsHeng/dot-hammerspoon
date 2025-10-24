@@ -46,7 +46,10 @@ function M.setupAppHotkeys()
     -- Register toggle app hotkeys
     hs.fnutils.each(launcher_apps, function(entry)
         if entry.key and entry.appname then
-            local hotkey_desc = string.format("Launch/Toggle %s", entry.appname)
+            local hotkey_desc = entry.hotkey_desc or nil
+            if hotkey_desc then
+                hotkey_desc = string.format("Launch/Toggle %s", entry.appname)
+            end
             hs.hotkey.bind(entry.modifier or launcher_modifier, entry.key, hotkey_desc, function()
                 M.launchOrToggleApp(entry.appname, entry.bundleid)
             end)
@@ -116,12 +119,13 @@ end
 function M.launchOrToggleApp(app_name, bundle_id)
     log.i(string.format("Launch/toggle app: %s (%s)", app_name, bundle_id or "unknown"))
 
-    local success = app_utils.toggleApp(app_name, bundle_id)
-    if success then
-        notification_utils.sendNotification("Applications",
-            string.format("%s toggled", app_name), "macos")
-    else
+    local result = app_utils.toggleApp(app_name, bundle_id)
+
+    if not result.success then
         log.w(string.format("Failed to toggle app: %s", app_name))
+    elseif not result.running then
+        -- Only show alert when actually launching a new process
+        notification_utils.sendAlert(string.format("Launched: %s", app_name), 1.0)
     end
 end
 
@@ -130,10 +134,7 @@ function M.launchApp(identifier)
     log.i(string.format("Launch app: %s", identifier))
 
     local success = app_utils.focusApp(identifier)
-    if success then
-        notification_utils.sendNotification("Applications",
-            string.format("Launched: %s", identifier), "macos")
-    else
+    if not success then
         log.w(string.format("Failed to launch app: %s", identifier))
     end
 end
@@ -143,8 +144,6 @@ function M.restartApp(app_name, bundle_id)
     log.i(string.format("Restart app: %s (%s)", app_name, bundle_id or "unknown"))
 
     app_utils.restartApp(app_name, bundle_id)
-    notification_utils.sendNotification("Applications",
-        string.format("Restarted: %s", app_name), "macos")
 end
 
 -- Kill application (force quit)
@@ -154,10 +153,7 @@ function M.killApp(identifier, force)
     log.i(string.format("Kill app: %s (force: %s)", identifier, tostring(force)))
 
     local success = app_utils.killApp(identifier, force)
-    if success then
-        notification_utils.sendNotification("Applications",
-            string.format("Killed: %s", identifier), "macos")
-    else
+    if not success then
         log.w(string.format("Failed to kill app: %s", identifier))
     end
 end

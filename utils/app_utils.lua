@@ -30,13 +30,23 @@ function M.toggleApp(app_name, bundle_id)
 
     local app = hs.application.get(bundle_id)
     if app then
+        -- Application is running
         if app:isFrontmost() then
+            -- Hide the application
             app:hide()
+            log.d(string.format("Hid running application: %s", app_name))
+            return {success = true, action = "hide", running = true}
         else
+            -- Bring to front
             app:activate()
+            log.d(string.format("Activated running application: %s", app_name))
+            return {success = true, action = "activate", running = true}
         end
     else
-        hs.application.launchOrFocus(app_name)
+        -- Application not running, launch it
+        local success = hs.application.launchOrFocus(app_name)
+        log.d(string.format("Launched new application process: %s (success: %s)", app_name, tostring(success)))
+        return {success = success, action = "launch", running = false}
     end
 end
 
