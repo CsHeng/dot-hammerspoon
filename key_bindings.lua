@@ -13,7 +13,8 @@ local launcherAppList = {
     {modifier = launcherModifier, key = 'G', appname = 'Google Chrome', bundleid = 'com.google.Chrome'},
     {modifier = launcherModifier, key = 'F', appname = 'Finder', bundleid = 'com.apple.Finder'},
     {modifier = launcherModifier, key = 'H', appname = 'Hammerspoon', bundleid = 'org.hammerspoon.Hammerspoon'},
-    {modifier = {}, key = 'F10', appname = 'WezTerm', bundleid = 'com.github.wez.wezterm'},
+    -- {modifier = {}, key = 'F10', appname = 'WezTerm', bundleid = 'com.github.wez.wezterm'},
+    {modifier = {}, key = 'F10', appname = 'Ghostty', bundleid = 'com.mitchellh.ghostty'},
 }
 
 local mediaControlList = {
@@ -30,7 +31,9 @@ local fuckAppList = {
 
 -- register toggle app
 hs.fnutils.each(launcherAppList, function(entry)
-    hs.hotkey.bind(entry.modifier, entry.key, entry.appname, function()
+    -- don't show app name in hotkey hint
+    -- hs.hotkey.bind(entry.modifier, entry.key, entry.appname, function()
+    hs.hotkey.bind(entry.modifier, entry.key, function()
         utils.toggleApp(entry.appname, entry.bundleid)
     end)
 end)
