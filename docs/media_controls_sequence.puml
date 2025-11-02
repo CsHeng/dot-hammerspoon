@@ -1,0 +1,27 @@
+@startuml MediaControlsSequence
+title Media controls hotkey (volume up) flow
+
+actor User as user
+participant "hs.hotkey" as hotkey
+participant "modules.media_controls" as media
+participant "hs.eventtap" as eventtap
+participant "utils.notification_utils" as notification
+participant "hs.alert" as alert
+
+autonumber
+
+user -> hotkey: press ctrl+cmd+alt+up
+hotkey -> media: sendMediaKeyEvent("SOUND_UP")
+media -> eventtap: newSystemKeyEvent(action=true)
+eventtap --> media: key down posted
+media -> eventtap: newSystemKeyEvent(action=false) delayed
+media -> notification: sendAlert("Media: SOUND_UP", 0.5)
+notification -> alert: hs.alert.show(...)
+alert --> user: toast displayed once
+
+note right of media
+Handler no longer passes a description string to hs.hotkey.bind,
+so only notification_utils triggers user feedback.
+end note
+
+@enduml

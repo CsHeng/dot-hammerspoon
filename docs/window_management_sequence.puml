@@ -1,0 +1,34 @@
+@startuml WindowManagementSequence
+title Window management half-screen flow
+
+actor User as user
+participant "hs.hotkey" as hotkey
+participant "modules.window_management" as wm
+participant "utils.window_utils" as wutils
+participant "utils.display_utils" as dutils
+participant "Focused hs.window" as window
+
+autonumber
+
+user -> hotkey: press ctrl+alt+left
+hotkey -> wm: moveWindowHalf("left")
+wm -> wutils: getFocusedWindow()
+wutils --> wm: focused window or nil
+alt Focused window available
+    wm -> wutils: moveWindowToHalf(window, "left", true)
+    wutils -> dutils: getScreenFrame(current_screen)
+    dutils --> wutils: screen frame
+    wutils -> window: setFrame(leftHalfFrame)
+    window --> wutils: success boolean
+    wutils --> wm: reposition status
+    wm --> user: window snapped / cross-display handled
+else No focused window
+    wm --> user: no action, logs diagnostic
+end
+
+note right of wm
+Logic reuses display_utils for screen math and persists
+original frames via window_utils when edge crossover happens.
+end note
+
+@enduml

@@ -1,0 +1,26 @@
+@startuml KeystrokeVisualizerSequence
+title Toggle keystroke visualizer flow
+
+actor User as user
+participant "hs.hotkey" as hotkey
+participant "modules.keystroke_visualizer" as keyviz
+participant "core.config_loader" as config
+participant "hs.alert" as alert
+
+autonumber
+
+user -> hotkey: press ctrl+cmd+alt+k
+hotkey -> keyviz: toggleKeystrokes()
+keyviz -> config: get("keycastr.enabled")
+config --> keyviz: current flag
+keyviz -> config: set("keycastr.enabled", new flag)
+keyviz -> keyviz: clearAllDrawings() when disabling
+keyviz -> alert: hs.alert.show("KeyCastr: Enabled/Disabled")
+alert --> user: status toast (single)
+
+note right of keyviz
+The hotkey binding omits a description string, eliminating duplicate
+alerts while keeping explicit status feedback via hs.alert.
+end note
+
+@enduml

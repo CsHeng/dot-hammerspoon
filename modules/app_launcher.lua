@@ -85,12 +85,24 @@ function M.setupProtectionHotkeys()
     local cmdq_hotkey = getHotkeyConfig("protection.cmd_q") or {"cmd", "q"}
     local protection_delay = 0.5 -- seconds
 
+    -- Extract modifiers and key from the hotkey configuration
+    local function parseHotkey(hotkey_config)
+        local mods = {}
+        for i = 1, #hotkey_config - 1 do
+            mods[i] = hotkey_config[i]
+        end
+        local key = hotkey_config[#hotkey_config]
+        return mods, key
+    end
+
+    local cmdq_mods, cmdq_key = parseHotkey(cmdq_hotkey)
+
     local cmdq_state = {
         pressed = false,
         timer = nil
     }
 
-    hs.hotkey.bind(cmdq_hotkey[1], cmdq_hotkey[2], "Protected Quit", function()
+    hs.hotkey.bind(cmdq_mods, cmdq_key, function()
         if cmdq_state.pressed then
             -- Second press: Quit the frontmost app
             local app = hs.application.frontmostApplication()

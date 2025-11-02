@@ -27,7 +27,8 @@ This directory contains comprehensive documentation for the modular Hammerspoon 
 - **[MouseManagement.md](MouseManagement.md)** - Mouse scroll reversal, button customization, and acceleration
 - **[WiFiAutomation.md](WiFiAutomation.md)** - Network-based audio automation and location services
 - **[KeystrokeVisualizer.md](KeystrokeVisualizer.md)** - Keystroke visualization with display modes and effects
-- **[WindowExpose.md](WindowExpose.md)** - Window expose functionality with thumbnail previews (lazy-loaded)
+- **[WindowExpose.md](WindowExpose.md)** - Alt-Tab style window switcher with live previews (lazy-loaded)
+- **[NotchHider.md](NotchHider.md)** - Menu-bar notch masking for built-in displays with rounded canvas overlay
 
 ### ⚙️ Configuration
 - **[HotkeyConfiguration.md](HotkeyConfiguration.md)** - Hotkey definitions, modifiers, and customization
@@ -79,7 +80,7 @@ docs/
 ├── MouseManagement.md          # Mouse and input management
 ├── WiFiAutomation.md          # Network automation
 ├── KeystrokeVisualizer.md     # Keystroke visualization
-├── WindowExpose.md             # Window expose functionality
+├── WindowExpose.md             # Alt-Tab style window switcher
 ├── HotkeyConfiguration.md     # Hotkey setup and customization
 ├── AppConfiguration.md         # Application configuration
 ├── WiFiConfiguration.md        # Network and WiFi configuration

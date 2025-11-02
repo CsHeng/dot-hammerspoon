@@ -195,30 +195,6 @@ local browser_list = config.get("applications.browsers.bundle_ids", {
 })
 ```
 
-### `setupBrowserMissionControl()`
-
-Sets up a dedicated hotkey for triggering Mission Control specifically in browser environments.
-
-**Hotkey:** `⌃⌘⌥M` (configurable)
-
-**Behavior:**
-- Only active when a browser is the frontmost application
-- Triggers the same Mission Control as middle click in non-browser apps
-
-**Example:**
-```lua
--- Setup is automatic during module initialization
--- Manual trigger if needed:
-mouse_management.setupBrowserMissionControl()
-```
-
-**Configuration:**
-```lua
--- Customize the hotkey in config
--- Default: {"ctrl", "cmd", "alt", "m"}
-local hotkey = config.get("hotkeys.browser_mission_control")
-```
-
 ### `mouse_management.centerMouseOnWindow(window)`
 
 Centers the mouse cursor on a specific window.
@@ -575,36 +551,14 @@ mouse_button_tap = hs.eventtap.new({
 end)
 ```
 
-### Browser Mission Control Hotkey
-
-For situations where Mission Control is needed while in a browser environment:
-
-```lua
--- Browser-specific Mission Control hotkey
-function M.setupBrowserMissionControl()
-    local browser_mc_hotkey = getHotkeyConfig("browser_mission_control")
-                           or {"ctrl", "cmd", "alt", "m"}
-
-    hs.hotkey.bind(browser_mc_hotkey[1], browser_mc_hotkey[2],
-                   "Browser Mission Control", function()
-        if app_utils.isBrowser() then
-            log.d("Triggering Mission Control from browser hotkey")
-            local mouse_modifier = getHotkeyConfig("mouse.modifier") or {"fn", "ctrl"}
-            hs.eventtap.keyStroke(mouse_modifier, "up", 0)
-        end
-    end)
-end
-```
-
-### Configuration and Customization
+### Mouse Button Customization
 
 #### Hotkey Configuration
 
 ```lua
 -- In config/hotkeys.lua
 config.hotkeys = {
-    browser_mission_control = {"ctrl", "cmd", "alt", "m"},
-    mouse = {
+      mouse = {
         modifier = {"fn", "ctrl"}  -- For Mission Control
     }
 }

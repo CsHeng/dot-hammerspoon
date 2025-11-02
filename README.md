@@ -9,6 +9,7 @@ This is a modular Hammerspoon configuration for macOS automation, providing wind
 ### Essential Hotkeys
 - `⌃⌘⌥R`: Reload Hammerspoon configuration
 - `⌃⌘⌥H`: Open Hammerspoon console
+- `⌃⌥⌘N`: Toggle notch hider overlay
 
 ### Window Management
 - `⌃⌥ARROWS`: Half-screen positioning
@@ -58,6 +59,7 @@ See `/docs/` directory for comprehensive documentation:
 - **`wifi_automation.lua`** - Network automation and monitoring
 - **`keystroke_visualizer.lua`** - KeyCastr functionality
 - **`window_expose.lua`** - Window expose (lazy-loaded)
+- **`notch_hider.lua`** - Menu-bar notch masking with canvas overlay and rounded corners
 
 ### Utilities (`utils/`)
 

@@ -1,0 +1,43 @@
+@startuml HammerspoonOverallSequence
+title Hammerspoon overall hotkey processing
+
+actor User as user
+participant "Hammerspoon engine" as engine
+participant "init.lua" as init
+participant "core/init_system.lua" as initSystem
+participant "modules.media_controls" as media
+participant "modules.app_launcher" as launcher
+participant "modules.keystroke_visualizer" as keyviz
+participant "utils.notification_utils" as notification
+participant "hs.hotkey" as hotkey
+participant "hs.alert" as alert
+
+autonumber
+
+user -> engine: reload configuration
+engine -> init: load init.lua
+init -> initSystem: require("core.init_system")
+initSystem -> initSystem: register modules
+initSystem -> hotkey: bind startup hotkeys
+initSystem -> media: load module
+media -> hotkey: bind media hotkeys (no description)
+initSystem -> launcher: load module
+launcher -> hotkey: bind launcher hotkeys
+initSystem -> keyviz: load module
+keyviz -> hotkey: bind visualizer hotkeys (no description)
+initSystem --> init: modules ready
+init --> engine: initialization complete
+
+== runtime example ==
+user -> hotkey: press ctrl+cmd+alt+up
+hotkey -> media: invoke sendMediaKeyEvent()
+media -> notification: sendAlert("Media: SOUND_UP", 0.5)
+notification -> alert: hs.alert.show(...)
+alert --> user: single toast shown
+
+note over hotkey, alert
+Removed the description parameter from hs.hotkey.bind,
+so the framework no longer displays a second automatic toast.
+end note
+
+@enduml

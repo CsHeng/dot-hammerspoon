@@ -1,214 +1,45 @@
-# Window Expose
+# Window Switcher (Alt-Tab)
 
 ## Overview
 
-Window Expose provides thumbnail-based window overview functionality similar to macOS Mission Control. This module displays all visible windows across all spaces as thumbnails, allowing quick window selection and navigation. Implemented with lazy loading for optimal performance.
+The window switcher delivers a fast, Alt-Tab style experience on macOS using Hammerspoon. It presents your most recently used windows as large preview cards with live thumbnails, titles, and quick-hint badges so you can jump between tasks without leaving the keyboard. The module loads on-demand the first time you press the configured hotkey, keeping startup time minimal.
 
-## Core Functionality
+## Key Features
 
-### Thumbnail Generation
+- **MRU Ordering** – windows are listed by most recent focus so the next task is always a single tap away.
+- **Rich Previews** – each card can show a live window snapshot, high-resolution app icon, or smart initials fallback.
+- **Adaptive Layout** – responsive grid with glassmorphism styling, drop shadows, and highlight animations.
+- **Keyboard Centric** – press `⌥Tab` to cycle forward, `⌥⇧Tab` to cycle backward; release to focus instantly.
+- **App Filtering** – optionally limit visible windows via `applications.expose_app_filter.allowed`.
+- **Lazy Loading** – the module and assets are only required when the switcher is first invoked.
 
-- **Window Thumbnails**: Creates thumbnail previews of all visible windows
-- **Cross-Space Visibility**: Shows windows from all desktop spaces
-- **Automatic Filtering**: Filters out minimized and hidden windows
-- **Thumbnail Sizing**: Calculates appropriate thumbnail sizes based on window count
+## Usage
 
-### Display Management
+1. Reload Hammerspoon (`⌃⌘⌥R`).
+2. Hit `⌥Tab` (or the key combo defined at `hotkeys.system.expose`).
+3. On first use the module loads, then immediately displays the live switcher overlay.
+4. Continue tapping `Tab` (or `⇧Tab`) while holding the modifier to move through windows.
+5. Release the modifier to switch to the highlighted window and dismiss the overlay.
 
-- **Grid Layout**: Arranges thumbnails in organized grid pattern
-- **Multi-Screen Support**: Works across multiple displays
-- **Responsive Layout**: Adapts layout to available screen space
-- **Smart Spacing**: Maintains appropriate spacing between thumbnails
+## Configuration
 
-### Window Selection
+| Setting | Location | Description |
+| --- | --- | --- |
+| Hotkey | `config/hotkeys.lua → hotkeys.system.expose` | Primary trigger (defaults to `⌥Tab`). |
+| Allowed Apps | `config/applications.lua → expose_app_filter.allowed` | Optional whitelist of app names shown in the switcher. |
 
-- **Click Navigation**: Click thumbnails to focus corresponding windows
-- **Keyboard Navigation**: Navigate thumbnails with arrow keys
-- **Visual Feedback**: Highlights selected thumbnails
-- **Quick Access**: Rapid window switching without mouse
+The module supports up to 12 windows at once for clarity. If more windows are open, the least-recent entries are truncated.
 
-### Lazy Loading System
+## Lazy Loading Flow
 
-- **Performance Optimization**: Module loads only when first used
-- **Memory Management**: Efficient resource usage
-- **On-Demand Loading**: Initializes functionality on first activation
-- **Clean Unloading**: Releases resources when not needed
-
-## API Reference
-
-### Core Functions
-
-- `window_expose.toggle()` - Toggle expose visibility
-- `window_expose.show()` - Show expose view
-- `window_expose.hide()` - Hide expose view
-- `window_expose.isLoaded()` - Check if module is loaded
-- `window_expose.loadExpose()` - Load expose functionality
-
-### Window Management
-
-- `window_expose.getVisibleWindows()` - Get all visible windows
-- `window_expose.focusWindow(thumbnail)` - Focus window from thumbnail
-- `window_expose.refreshThumbnails()` - Refresh thumbnail images
-- `window_expose.getWindowsForScreen(screen)` - Get windows for specific screen
-
-### Display Functions
-
-- `window_expose.calculateLayout(windows, screen)` - Calculate thumbnail grid layout
-- `window_expose.createThumbnail(window, frame)` - Create window thumbnail
-- `window_expose.updateThumbnailPositions()` - Update thumbnail positions
-- `window_expose.clearThumbnails()` - Clear all thumbnails
-
-### Navigation Functions
-
-- `window_expose.selectNextThumbnail()` - Select next thumbnail
-- `window_expose.selectPreviousThumbnail()` - Select previous thumbnail
-- `window_expose.selectThumbnail(direction)` - Select thumbnail in direction
-- `window_expose.getSelectedThumbnail()` - Get currently selected thumbnail
-
-## Display Layout
-
-### Grid Calculation
-
-Automatically calculates optimal grid layout based on:
-- Number of visible windows
-- Available screen space
-- Thumbnail aspect ratios
-- Minimum thumbnail size requirements
-
-### Sizing Algorithm
-
-Determines thumbnail sizes using:
-- Screen dimensions and resolution
-- Window count and aspect ratios
-- Minimum readable size constraints
-- User preference settings
-
-### Positioning Logic
-
-Positions thumbnails using:
-- Centered grid alignment
-- Consistent spacing between thumbnails
-- Screen edge constraints
-- Visual hierarchy organization
-
-## Lazy Loading Implementation
-
-### Initialization Trigger
-
-Module loads when:
-- User presses expose hotkey (ctrl+cmd+tab)
-- Explicit function call to loadExpose()
-- First access to expose functionality
-
-### Loading Process
-
-1. **Dependency Check**: Verifies required modules are available
-2. **Resource Allocation**: Sets up necessary resources and event taps
-3. **Thumbnail Generation**: Creates initial window thumbnails
-4. **Display Setup**: Configures visual elements and layouts
-5. **Event Binding**: Sets up keyboard and mouse event handlers
-
-### Performance Benefits
-
-- **Reduced Memory Usage**: No resources consumed until needed
-- **Faster Startup**: Improves initial Hammerspoon loading time
-- **On-Demand Processing**: Only processes windows when expose is active
-- **Resource Cleanup**: Releases resources when module is inactive
-
-## Integration
-
-### Hotkey System
-
-- Integrated with main hotkey configuration
-- Uses `ctrl+cmd+tab` hotkey for expose toggle
-- Supports keyboard navigation within expose view
-- Respects user-defined hotkey preferences
-
-### Window Management Integration
-
-- Works with window management utilities
-- Respects window positioning and sizing
-- Coordinates with multi-monitor window operations
-- Maintains consistency with other window features
-
-### Display Utils Integration
-
-- Uses display utilities for multi-monitor support
-- Calculates layouts across multiple screens
-- Handles screen configuration changes
-- Provides consistent cross-display behavior
-
-## Use Cases
-
-### Window Navigation
-
-- Quickly locate specific windows among many open applications
-- Switch between windows without using application switcher
-- Navigate windows across multiple desktop spaces
-- Find windows when they're hidden behind other windows
-
-### Visual Overview
-
-- Get overview of all current workspace windows
-- Identify window contents at a glance
-- Organize workspace by seeing all windows simultaneously
-- Clean up desktop by identifying unnecessary windows
-
-### Productivity Enhancement
-
-- Rapid window switching for multitasking workflows
-- Visual workspace management and organization
-- Quick access to specific windows in complex setups
-- Reduced time spent searching for windows
-
-## Configuration Options
-
-### Visual Settings
-- **Thumbnail Size**: Minimum and maximum thumbnail dimensions
-- **Grid Spacing**: Space between thumbnails
-- **Selection Highlight**: Visual feedback for selected thumbnails
-- **Background Opacity**: Background dimming level
-
-### Behavior Settings
-- **Auto-hide Duration**: Time before auto-hiding expose
-- **Window Filtering**: Types of windows to include/exclude
-- **Animation Settings**: Enable/disable transition animations
-- **Keyboard Navigation**: Configure navigation keys
-
-### Performance Settings
-- **Thumbnail Quality**: Balance between quality and performance
-- **Refresh Rate**: Thumbnail update frequency
-- **Memory Limits**: Maximum memory usage for thumbnails
-- **Cache Settings**: Thumbnail caching behavior
-
-## Performance Considerations
-
-### Optimization Features
-
-- **Smart Filtering**: Only processes relevant windows
-- **Thumbnail Caching**: Caches thumbnails to reduce redraws
-- **Lazy Updates**: Updates only visible thumbnails
-- **Memory Management**: Automatically cleans up unused resources
-
-### Resource Management
-
-- **Efficient Rendering**: Uses optimized drawing methods
-- **Background Processing**: Non-blocking thumbnail generation
-- **Resource Cleanup**: Releases resources when expose is hidden
-- **Memory Monitoring**: Tracks and controls memory usage
+1. `init.lua` binds lightweight handlers that require `modules/window_expose.lua` on first use.
+2. Once required, the module registers its real hotkeys and sets up internal state.
+3. The temporary binding is removed and `module.trigger()` is invoked so the overlay appears immediately in the requested direction.
 
 ## Troubleshooting
 
-### Common Issues
+- **No overlay appears**: ensure the first `⌥Tab` press happens after reloading Hammerspoon; check the console for module loading errors.
+- **Missing thumbnails**: some applications disallow snapshots; the switcher falls back to icons or initials automatically.
+- **Hotkey conflicts**: adjust `hotkeys.system.expose` to a different combination and reload.
 
-- **Slow Loading**: Performance optimization through lazy loading
-- **Memory Usage**: Automatic resource cleanup and monitoring
-- **Thumbnail Quality**: Adjustable quality settings
-- **Display Issues**: Multi-monitor layout recalculations
-
-### Debug Functions
-
-- **Status Checking**: Verify module loading state
-- **Window Listing**: Debug window detection and filtering
-- **Layout Debugging**: Verify thumbnail positioning calculations
-- **Performance Monitoring**: Track resource usage and timing
+Use `require("modules.window_expose").debug()` in the Hammerspoon console for internal status logs.

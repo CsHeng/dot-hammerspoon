@@ -1,0 +1,36 @@
+@startuml NotchHiderSequence
+title Toggle notch hider overlay
+
+actor User as user
+participant "hs.hotkey" as hotkey
+participant "modules.notch_hider" as notch
+participant "core.config_loader" as config
+participant "hs.screen" as screen
+participant "hs.canvas" as canvas
+participant "hs.alert" as alert
+
+autonumber
+
+user -> hotkey: toggle notch hider
+hotkey -> notch: show()
+notch -> config: get("notch_hider.screen_uuid")
+config --> notch: configured UUID or sentinel
+alt Matching screen located
+    notch -> screen: allScreens()/mainScreen()
+    screen --> notch: target display
+    notch -> canvas: new(windowRect)
+    canvas --> notch: overlay handle
+    notch -> canvas: show()
+    notch -> alert: hs.alert.show("Notch hider enabled")
+    alert --> user: confirmation toast
+else No display available
+    notch -> alert: hs.alert.show("No display found")
+    alert --> user: warning
+end
+
+note right of notch
+Module caches state, watches for screen changes, and
+respects opacity/overscan settings sourced from config.
+end note
+
+@enduml

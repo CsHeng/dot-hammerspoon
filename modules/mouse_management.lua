@@ -52,9 +52,6 @@ function M.init()
     -- Setup mouse utility hotkeys
     M.setupMouseHotkeys()
 
-    -- Setup browser-specific Mission Control hotkey
-    M.setupBrowserMissionControl()
-
     -- Setup paste defeat
     M.setupPasteDefeat()
 
@@ -122,24 +119,20 @@ end
 -- Setup mouse utility hotkeys
 function M.setupMouseHotkeys()
     -- Mouse speed adjustment
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "=", "Mouse Speed Up", function()
+    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "=", function()
         M.adjustMouseSpeed(0.1)
     end)
 
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "-", "Mouse Speed Down", function()
+    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "-", function()
         M.adjustMouseSpeed(-0.1)
     end)
 
     -- Mouse acceleration toggle
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "\\", "Toggle Mouse Acceleration", function()
+    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "\\", function()
         M.toggleMouseAcceleration()
     end)
 
-    -- Center mouse on focused window
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "m", "Center Mouse on Window", function()
-        M.centerMouseOnWindow()
-    end)
-
+  
     log.i("Setup mouse utility hotkeys")
 end
 
@@ -147,7 +140,19 @@ end
 function M.setupPasteDefeat()
     local paste_hotkey = getHotkeyConfig("protection.paste_defeat") or {"cmd", "alt", "V"}
 
-    hs.hotkey.bind(paste_hotkey[1], paste_hotkey[2], "Paste Defeat", function()
+    -- Extract modifiers and key from the hotkey configuration
+    local function parseHotkey(hotkey_config)
+        local mods = {}
+        for i = 1, #hotkey_config - 1 do
+            mods[i] = hotkey_config[i]
+        end
+        local key = hotkey_config[#hotkey_config]
+        return mods, key
+    end
+
+    local paste_mods, paste_key = parseHotkey(paste_hotkey)
+
+    hs.hotkey.bind(paste_mods, paste_key, "Paste Defeat", function()
         local clipboard_content = hs.pasteboard.getContents()
         if clipboard_content and clipboard_content ~= "" then
             hs.eventtap.keyStrokes(clipboard_content)
@@ -160,23 +165,6 @@ function M.setupPasteDefeat()
     log.i("Setup paste defeat hotkey")
 end
 
--- Setup browser-specific Mission Control hotkey
-function M.setupBrowserMissionControl()
-    -- Hotkey for Mission Control that works in browsers
-    local browser_mc_hotkey = getHotkeyConfig("browser_mission_control") or {"ctrl", "cmd", "alt", "m"}
-
-    hs.hotkey.bind(browser_mc_hotkey[1], browser_mc_hotkey[2], "Browser Mission Control", function()
-        if app_utils.isBrowser() then
-            log.d("Triggering Mission Control from browser hotkey")
-            local mouse_modifier = getHotkeyConfig("mouse.modifier") or {"fn", "ctrl"}
-            hs.eventtap.keyStroke(mouse_modifier, "up", 0)
-        else
-            log.d("Not in browser, ignoring Mission Control hotkey")
-        end
-    end)
-
-    log.i("Setup browser Mission Control hotkey")
-end
 
 -- Adjust mouse speed
 function M.adjustMouseSpeed(delta)

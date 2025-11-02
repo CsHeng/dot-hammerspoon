@@ -13,7 +13,8 @@ config.applications = {
         {modifier = {"cmd", "alt"}, key = 'G', appname = 'Google Chrome', bundleid = 'com.google.Chrome'},
         {modifier = {"cmd", "alt"}, key = 'F', appname = 'Finder', bundleid = 'com.apple.Finder'},
         {modifier = {"cmd", "alt"}, key = 'H', appname = 'Hammerspoon', bundleid = 'org.hammerspoon.Hammerspoon'},
-        {modifier = {}, key = 'F10', appname = 'Ghostty', bundleid = 'com.mitchellh.ghostty'},
+        -- {modifier = {}, key = 'F10', appname = 'Ghostty', bundleid = 'com.mitchellh.ghostty'},
+        {modifier = {}, key = 'F10', appname = 'Wezterm', bundleid = 'com.github.wez.wezterm'},
     },
 
     -- Media control bindings

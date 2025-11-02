@@ -27,8 +27,8 @@ local module_dependencies = {
     "modules.media_controls",
     "modules.mouse_management",
     "modules.wifi_automation",
-    "modules.keystroke_visualizer"
-    -- Note: modules.window_expose is lazy-loaded and not included here
+    "modules.keystroke_visualizer",
+    "modules.notch_hider"
 }
 
 -- Register a module
@@ -237,11 +237,13 @@ function M.init()
     })
 
     -- Register modules that are lazy-loaded or have special loading
-    M.registerModule("modules.window_expose", {
+    M.registerModule("modules.notch_hider", {
         init = function()
-            -- Will be loaded lazily via init.lua
+            -- Will be loaded when modules/notch_hider.lua is required
         end,
-        dependencies = {}
+        dependencies = {
+            "utils.display_utils"
+        }
     })
 
     log:i("Module system initialized")

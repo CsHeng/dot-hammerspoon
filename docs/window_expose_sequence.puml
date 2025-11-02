@@ -1,0 +1,40 @@
+@startuml WindowExposeSequence
+title Window switcher session flow (Option+Tab)
+
+actor User as user
+participant "hs.hotkey" as hotkey
+participant "modules.window_expose" as expose
+participant "core.config_loader" as config
+participant "hs.window.filter" as filter
+participant "hs.canvas" as canvas
+participant "hs.eventtap" as eventtap
+
+autonumber
+
+user -> hotkey: press option+tab
+hotkey -> expose: beginSession(1)
+expose -> filter: getWindows(sortByFocusedLast)
+filter --> expose: window list
+expose -> expose: buildWindowAssets(windows)
+expose -> canvas: layoutCanvas()
+expose -> eventtap: start modifier watcher
+expose -> expose: setSelection(1)
+loop while user cycles
+    user -> hotkey: hold / press tab
+    hotkey -> expose: beginSession(±1)
+    expose -> expose: stepSelection(delta)
+    expose -> canvas: highlight selected tile
+end
+user -> hotkey: release modifiers
+hotkey -> expose: handleHotkeyRelease()
+expose -> expose: finalizeSelection()
+expose -> canvas: delete()
+expose -> eventtap: stop modifier watcher
+expose -> expose: focusWindow(chosen)
+
+note over expose
+Session state tracks modifier keys, cached window assets,
+and cleans up lazily loaded canvas overlays on cancel.
+end note
+
+@enduml

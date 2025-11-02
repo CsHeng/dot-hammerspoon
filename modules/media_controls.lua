@@ -43,8 +43,7 @@ function M.setupMediaHotkeys()
 
     hs.fnutils.each(media_controls, function(entry)
         if entry.key and entry.action then
-            local hotkey_desc = string.format("Media: %s", entry.action)
-            hs.hotkey.bind(entry.modifier, entry.key, hotkey_desc, function()
+            hs.hotkey.bind(entry.modifier, entry.key, function()
                 M.sendMediaKeyEvent(entry.action)
             end)
             log.d(string.format("Registered media hotkey: %s+%s -> %s",
@@ -55,43 +54,35 @@ end
 
 -- Setup audio device controls
 function M.setupAudioControls()
-    -- Volume up with finer control
-    local volume_up_key = getHotkeyConfig("media.volume_up") or {"ctrl", "cmd", "alt", "up"}
-    hs.hotkey.bind(volume_up_key[1], volume_up_key[2], "Volume Up", function()
-        M.adjustVolume(0.05) -- Smaller increment than default
-    end)
-
-    -- Volume down with finer control
-    local volume_down_key = getHotkeyConfig("media.volume_down") or {"ctrl", "cmd", "alt", "down"}
-    hs.hotkey.bind(volume_down_key[1], volume_down_key[2], "Volume Down", function()
-        M.adjustVolume(-0.05) -- Smaller decrement than default
-    end)
+    -- Note: Volume up/down are handled by media_controls configuration
+    -- to avoid duplicate hotkey registration
+    -- Only setup mute toggle here
 
     -- Mute toggle
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "m", "Mute Toggle", function()
+    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "m", function()
         M.toggleMute()
     end)
 
-    log.i("Setup audio device control hotkeys")
+    log.i("Setup audio device control hotkeys (mute only)")
 end
 
 -- Setup system controls
 function M.setupSystemControls()
     -- Brightness controls (if supported)
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "[", "Brightness Down", function()
+    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "[", function()
         M.adjustBrightness(-0.05)
     end)
 
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "]", "Brightness Up", function()
+    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "]", function()
         M.adjustBrightness(0.05)
     end)
 
     -- Keyboard backlight (if supported)
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, ";", "Keyboard Backlight Down", function()
+    hs.hotkey.bind({"ctrl", "cmd", "alt"}, ";", function()
         M.adjustKeyboardBacklight(-0.1)
     end)
 
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "'", "Keyboard Backlight Up", function()
+    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "'", function()
         M.adjustKeyboardBacklight(0.1)
     end)
 

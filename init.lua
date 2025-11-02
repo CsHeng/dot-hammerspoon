@@ -14,7 +14,10 @@ end)
 local function loadModularSystem()
     local modules_loaded = 0
 
-    -- Load core utilities
+    print("Loading modules through init_system...")
+
+    -- First, require all modules so they can register themselves
+    -- This does NOT initialize them, just registers them
     local utility_modules = {
         "utils/app_utils",
         "utils/display_utils",
@@ -26,8 +29,9 @@ local function loadModularSystem()
         local success, module = pcall(require, module_name)
         if success then
             modules_loaded = modules_loaded + 1
+            print("Registered: " .. module_name)
         else
-            print("Warning: Failed to load " .. module_name)
+            print("Warning: Failed to register " .. module_name)
         end
     end
 
@@ -38,19 +42,21 @@ local function loadModularSystem()
         "modules/media_controls",
         "modules/mouse_management",
         "modules/wifi_automation",
-        "modules/keystroke_visualizer"
+        "modules/keystroke_visualizer",
+        "modules/notch_hider"
     }
 
     for _, module_name in ipairs(feature_modules) do
         local success, module = pcall(require, module_name)
         if success then
             modules_loaded = modules_loaded + 1
+            print("Registered: " .. module_name)
         else
-            print("Warning: Failed to load " .. module_name)
+            print("Warning: Failed to register " .. module_name)
         end
     end
 
-    -- Initialize all modules and their hotkeys
+    -- Now initialize all modules and their hotkeys through the proper module system
     local init_system = require("core.init_system")
     local init_success = init_system.loadAllModules()
     if init_success then
@@ -69,28 +75,85 @@ print("Hammerspoon loaded " .. modules_loaded_count .. " modules")
 -- Success notification
 hs.alert.show("Hammerspoon loaded")
 
--- Lazy load window_expose module to avoid slow startup
-local expose_loaded = false
-local function loadExpose()
-    if not expose_loaded then
-        local success, expose_module = pcall(require, "modules.window_expose")
-        if success then
-            expose_loaded = true
-            print("Window expose module loaded")
-        else
-            print("Failed to load window expose module: " .. tostring(expose_module))
-        end
+-- Lazy load window switcher on first Alt+Tab usage
+local function cloneHotkey(list)
+    local result = {}
+    for i, value in ipairs(list) do
+        result[i] = string.lower(value)
     end
+    return result
 end
 
--- Create a temporary hotkey that will load expose on first use
-hs.hotkey.bind({"ctrl", "cmd"}, "tab", "Expose (Loading...)", function()
-    loadExpose()
-    -- The actual expose hotkey is now loaded, so we can trigger it
-    hs.timer.doAfter(0.1, function()
-        hs.eventtap.keyStroke({"ctrl", "cmd"}, "tab")
-    end)
-end)
+local function splitHotkey(hotkey)
+    if type(hotkey) ~= "table" or #hotkey == 0 then
+        return nil, nil
+    end
+
+    local key = hotkey[#hotkey]
+    local mods = {}
+    for i = 1, #hotkey - 1 do
+        mods[i] = string.lower(hotkey[i])
+    end
+
+    return mods, key
+end
+
+local switcherLoaded = false
+local lazyBindings = {}
+
+local function ensureWindowSwitcher(stepDirection)
+    if switcherLoaded then
+        local ok, module = pcall(require, "modules.window_expose")
+        if ok and module.trigger then
+            module.trigger(stepDirection or 1)
+            return true
+        end
+        return ok
+    end
+
+    local ok, module = pcall(require, "modules.window_expose")
+    if not ok then
+        print("Failed to load window switcher: " .. tostring(module))
+        return false
+    end
+
+    if module.ensureInitialized then
+        module.ensureInitialized()
+    elseif module.init then
+        module.init()
+    end
+
+    for _, binding in ipairs(lazyBindings) do
+        binding:delete()
+    end
+    lazyBindings = {}
+    switcherLoaded = true
+
+    if module.trigger then
+        module.trigger(stepDirection or 1)
+    end
+
+    return true
+end
+
+local config_loader = require("core.config_loader")
+local exposeHotkey = config_loader.get("hotkeys.system.expose", {"alt", "tab"})
+local baseMods, exposeKey = splitHotkey(exposeHotkey)
+
+if baseMods and exposeKey then
+    local function bindLazy(mods, stepDirection)
+        local binding = hs.hotkey.bind(mods, exposeKey, "Window Switcher (Loading...)", function()
+            ensureWindowSwitcher(stepDirection)
+        end)
+        table.insert(lazyBindings, binding)
+    end
+
+    bindLazy(baseMods, 1)
+
+    local withShift = cloneHotkey(baseMods)
+    table.insert(withShift, "shift")
+    bindLazy(withShift, -1)
+end
 
 -- Debug function
 hs.debugHammerspoon = {

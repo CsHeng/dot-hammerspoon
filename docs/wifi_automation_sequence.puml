@@ -1,0 +1,35 @@
+@startuml WiFiAutomationSequence
+title WiFi watcher handles SSID change
+
+participant "hs.wifi.watcher" as watcher
+participant "modules.wifi_automation" as wifi
+participant "core.config_loader" as config
+participant "utils.notification_utils" as notification
+participant "hs.audiodevice" as audio
+
+autonumber
+
+watcher -> wifi: onSSIDChanged()
+wifi -> hs.wifi: currentNetwork()
+hs.wifi --> wifi: new_ssid
+wifi -> config: get("wifi.behavior.mute_on_work_networks")
+config --> wifi: flag
+alt Connected to muted SSID
+    wifi -> notification: getBuiltinOutputDevice()
+    notification --> wifi: builtin device
+    wifi -> audio: setVolume(0) / setOutputMuted(true)
+    wifi -> config: get("wifi.notifications.messages.work_mode")
+    config --> wifi: templated message
+    wifi -> notification: sendNotification("WiFi Changed", message)
+else Regular network change
+    wifi -> config: get("wifi.notifications.messages.connected")
+    config --> wifi: template
+    wifi -> notification: sendNotification("WiFi Changed", formatted)
+end
+
+note right of wifi
+Module tracks last_ssid to avoid redundant alerts and
+optionally unmutes audio when leaving work networks.
+end note
+
+@enduml

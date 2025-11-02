@@ -52,9 +52,23 @@ function M.setupToggleHotkeys()
     local circle_key = getHotkeyConfig("keycastr.click_circle") or {"ctrl", "cmd", "alt", "c"}
     local continuous_key = getHotkeyConfig("keycastr.continuous") or {"ctrl", "cmd", "alt", "i"}
 
-    hs.hotkey.bind(toggle_key[1], toggle_key[2], "Toggle Keystrokes", M.toggleKeystrokes)
-    hs.hotkey.bind(circle_key[1], circle_key[2], "Toggle Click Circle", M.toggleClickCircle)
-    hs.hotkey.bind(continuous_key[1], continuous_key[2], "Toggle Continuous Input", M.toggleContinuousInput)
+    -- Extract modifiers and key from the hotkey configuration
+    local function parseHotkey(hotkey_config)
+        local mods = {}
+        for i = 1, #hotkey_config - 1 do
+            mods[i] = hotkey_config[i]
+        end
+        local key = hotkey_config[#hotkey_config]
+        return mods, key
+    end
+
+    local toggle_mods, toggle_key_final = parseHotkey(toggle_key)
+    local circle_mods, circle_key_final = parseHotkey(circle_key)
+    local continuous_mods, continuous_key_final = parseHotkey(continuous_key)
+
+    hs.hotkey.bind(toggle_mods, toggle_key_final, M.toggleKeystrokes)
+    hs.hotkey.bind(circle_mods, circle_key_final, M.toggleClickCircle)
+    hs.hotkey.bind(continuous_mods, continuous_key_final, M.toggleContinuousInput)
 
     log.i("Setup keystroke visualizer hotkeys")
 end

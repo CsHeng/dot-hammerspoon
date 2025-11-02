@@ -8,7 +8,7 @@ config.hotkeys = {
     system = {
         reload = {"ctrl", "cmd", "alt", "R"},
         console = {"ctrl", "cmd", "alt", "H"},
-        expose = {"ctrl", "cmd", "tab"}
+        expose = {"alt", "tab"}
     },
 
     window = {
@@ -61,6 +61,10 @@ config.hotkeys = {
     protection = {
         cmd_q = {"cmd", "q"},
         paste_defeat = {"cmd", "alt", "V"}
+    },
+
+    notch_hider = {
+        toggle = {"ctrl", "alt", "cmd", "n"}
     }
 }
 
@@ -68,7 +72,7 @@ config.hotkeys = {
 config.hotkey_descriptions = {
     ["system.reload"] = "Reload Hammerspoon configuration",
     ["system.console"] = "Open Hammerspoon console",
-    ["system.expose"] = "Toggle window expose",
+    ["system.expose"] = "Open window switcher",
 
     ["window.left"] = "Move window to left half",
     ["window.right"] = "Move window to right half",
@@ -80,7 +84,9 @@ config.hotkey_descriptions = {
 
     ["keycastr.toggle"] = "Toggle keystroke visualization",
     ["keycastr.click_circle"] = "Toggle click circle visualization",
-    ["keycastr.continuous"] = "Toggle continuous input mode"
+    ["keycastr.continuous"] = "Toggle continuous input mode",
+
+    ["notch_hider.toggle"] = "Toggle notch hider"
 }
 
 return config

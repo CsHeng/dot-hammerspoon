@@ -1,0 +1,22 @@
+@startuml MouseManagementSequence
+title Mouse speed hotkey flow
+
+actor User as user
+participant "hs.hotkey" as hotkey
+participant "modules.mouse_management" as mouse
+participant "hs.alert" as alert
+
+autonumber
+
+user -> hotkey: press ctrl+cmd+alt+=
+hotkey -> mouse: adjustMouseSpeed(0.1)
+mouse -> mouse: log warning (not implemented)
+mouse -> alert: hs.alert.show("Mouse speed adjustment not available")
+alert --> user: informational toast
+
+note right of mouse
+Binding skips the description argument, so this helper alert is the sole
+user-visible notification even while the feature remains stubbed.
+end note
+
+@enduml

@@ -1,0 +1,34 @@
+@startuml AppLauncherSequence
+title Protected Cmd+Q flow
+
+actor User as user
+participant "hs.hotkey" as hotkey
+participant "modules.app_launcher" as launcher
+participant "hs.application" as app
+participant "hs.timer" as timer
+participant "utils.notification_utils" as notification
+participant "hs.alert" as alert
+
+autonumber
+
+user -> hotkey: press cmd+q (first time)
+hotkey -> launcher: protectedQuitHandler()
+launcher -> timer: start 0.5s watchdog
+launcher -> notification: sendAlert("Press Cmd+Q again to quit", 0.5)
+notification -> alert: hs.alert.show(...)
+alert --> user: reminder toast
+
+user -> hotkey: press cmd+q (second time)
+hotkey -> launcher: protectedQuitHandler()
+launcher -> app: frontmostApplication()
+app --> launcher: reference
+launcher -> app: kill()
+launcher -> timer: stop()
+launcher --> user: app terminated without extra toast
+
+note over hotkey, launcher
+The hotkey is bound without a descriptive string, preventing
+hs.hotkey from emitting its own duplicate overlay.
+end note
+
+@enduml
