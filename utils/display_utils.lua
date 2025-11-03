@@ -6,9 +6,46 @@ local log = logger.getLogger("display_utils")
 
 local M = {}
 
+local function sortScreensLeftToRight(screens)
+    if not screens then
+        return {}
+    end
+
+    table.sort(screens, function(a, b)
+        local a_frame = a:frame()
+        local b_frame = b:frame()
+
+        if not a_frame or not b_frame then
+            return (a:id() or 0) < (b:id() or 0)
+        end
+
+        if a_frame.x == b_frame.x then
+            return a_frame.y < b_frame.y
+        end
+
+        return a_frame.x < b_frame.x
+    end)
+
+    return screens
+end
+
+local function findScreenIndex(screens, target)
+    for index, screen in ipairs(screens) do
+        if screen == target then
+            return index
+        end
+    end
+    return nil
+end
+
 -- Get all screens in order
 function M.getAllScreens()
-    return hs.screen.allScreens()
+    local screens = hs.screen.allScreens()
+    if not screens or #screens == 0 then
+        return {}
+    end
+
+    return sortScreensLeftToRight(screens)
 end
 
 -- Get main screen
@@ -31,15 +68,25 @@ function M.getNextScreen(current_screen)
         current_screen = M.getCurrentScreen()
     end
 
-    local next_screen = current_screen:next()
-
-    -- Check if we're cycling back to the first screen
-    local all_screens = M.getAllScreens()
-    if next_screen == all_screens[1] and current_screen ~= all_screens[1] then
-        return nil -- Don't cycle, we're at the last screen
+    if not current_screen then
+        return nil
     end
 
-    return next_screen
+    local all_screens = M.getAllScreens()
+    if #all_screens <= 1 then
+        return nil
+    end
+
+    local current_index = findScreenIndex(all_screens, current_screen)
+    if not current_index then
+        return nil
+    end
+
+    if current_index >= #all_screens then
+        return nil -- Already at right-most screen, do not wrap
+    end
+
+    return all_screens[current_index + 1]
 end
 
 -- Get previous screen in order
@@ -48,15 +95,25 @@ function M.getPreviousScreen(current_screen)
         current_screen = M.getCurrentScreen()
     end
 
-    local prev_screen = current_screen:previous()
-
-    -- Check if we're cycling back to the last screen
-    local all_screens = M.getAllScreens()
-    if prev_screen == all_screens[#all_screens] and current_screen ~= all_screens[#all_screens] then
-        return nil -- Don't cycle, we're at the first screen
+    if not current_screen then
+        return nil
     end
 
-    return prev_screen
+    local all_screens = M.getAllScreens()
+    if #all_screens <= 1 then
+        return nil
+    end
+
+    local current_index = findScreenIndex(all_screens, current_screen)
+    if not current_index then
+        return nil
+    end
+
+    if current_index <= 1 then
+        return nil -- Already at left-most screen, do not wrap
+    end
+
+    return all_screens[current_index - 1]
 end
 
 -- Get screen frame with safety checks
