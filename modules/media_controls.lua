@@ -7,6 +7,7 @@ local config = require("core.config_loader")
 local notification_utils = require("utils.notification_utils")
 
 local log = logger.getLogger("media_controls")
+local brightness = hs.brightness
 
 local M = {}
 
@@ -43,7 +44,8 @@ function M.setupMediaHotkeys()
 
     hs.fnutils.each(media_controls, function(entry)
         if entry.key and entry.action then
-            hs.hotkey.bind(entry.modifier, entry.key, function()
+            local desc = entry.description or string.format("Media: %s", entry.action)
+            hs.hotkey.bind(entry.modifier, entry.key, desc, function()
                 M.sendMediaKeyEvent(entry.action)
             end)
             log.d(string.format("Registered media hotkey: %s+%s -> %s",
@@ -59,7 +61,7 @@ function M.setupAudioControls()
     -- Only setup mute toggle here
 
     -- Mute toggle
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "m", function()
+    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "m", "Audio: Toggle Mute", function()
         M.toggleMute()
     end)
 
@@ -69,20 +71,20 @@ end
 -- Setup system controls
 function M.setupSystemControls()
     -- Brightness controls (if supported)
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "[", function()
+    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "[", "Brightness Down", function()
         M.adjustBrightness(-0.05)
     end)
 
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "]", function()
+    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "]", "Brightness Up", function()
         M.adjustBrightness(0.05)
     end)
 
     -- Keyboard backlight (if supported)
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, ";", function()
+    hs.hotkey.bind({"ctrl", "cmd", "alt"}, ";", "Keyboard Backlight Down", function()
         M.adjustKeyboardBacklight(-0.1)
     end)
 
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "'", function()
+    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "'", "Keyboard Backlight Up", function()
         M.adjustKeyboardBacklight(0.1)
     end)
 
@@ -236,7 +238,6 @@ end
 
 -- Adjust screen brightness
 function M.adjustBrightness(delta)
-    -- This uses osascript since Hammerspoon doesn't have direct brightness control
     local current_brightness = M.getBrightness()
     if current_brightness == nil then
         log.w("Failed to get current brightness")
@@ -253,41 +254,36 @@ end
 
 -- Get current screen brightness
 function M.getBrightness()
-    local script = [[
-        tell application "System Events"
-            keystroke "f2" using {shift down, control down} -- This opens display settings
-            delay 0.5
-            tell process "System Settings" to quit
-        end tell
-
-        -- Alternative method using brightness command line tool
-        try
-            do shell script "brightness -l | grep -o '[0-9]\\.[0-9]\\+' | head -1"
-        on error
-            return "0.5"
-        end try
-    ]]
-
-    local success, output = hs.osascript.applescript(script)
-    if success then
-        return tonumber(output) or 0.5
+    if not brightness or not brightness.get then
+        log.w("Brightness API is unavailable")
+        return nil
     end
 
-    -- Fallback method
-    success, output = hs.execute("brightness -l 2>/dev/null | grep -o '[0-9]\\.[0-9]\\+' | head -1")
-    if success and output then
-        return tonumber(output) or 0.5
+    local ok, current = pcall(brightness.get)
+    if not ok then
+        log.w(string.format("Failed to get brightness: %s", tostring(current)))
+        return nil
     end
 
-    return 0.5 -- Default fallback
+    if type(current) ~= "number" then
+        log.w("Brightness API returned unexpected value")
+        return nil
+    end
+
+    return math.max(0, math.min(1, current / 100))
 end
 
 -- Set screen brightness
 function M.setBrightness(level)
-    local script = string.format('do shell script "brightness %.2f"', level)
-    local success, output = hs.osascript.applescript(script)
-    if not success then
-        log.w(string.format("Failed to set brightness: %s", output))
+    if not brightness or not brightness.set then
+        log.w("Brightness API is unavailable")
+        return
+    end
+
+    local percent = math.floor(math.max(0, math.min(1, level)) * 100 + 0.5)
+    local ok, err = pcall(brightness.set, percent)
+    if not ok then
+        log.w(string.format("Failed to set brightness: %s", tostring(err)))
     end
 end
 
@@ -323,7 +319,8 @@ function M.debug()
     log.i(string.format("  Output volume: %d%%", math.floor(status.output_volume * 100)))
     log.i(string.format("  Output muted: %s", tostring(status.output_muted)))
     log.i(string.format("  Input device: %s", status.input_device))
-    log.i(string.format("  Brightness: %d%%", math.floor(status.brightness * 100)))
+    local brightness_pct = status.brightness and math.floor(status.brightness * 100) or nil
+    log.i(string.format("  Brightness: %s", brightness_pct and (brightness_pct .. "%") or "Unavailable"))
     log.i(string.format("  Media controls enabled: %s", tostring(status.media_controls_enabled)))
 
     if #audio_info.all_outputs > 1 then

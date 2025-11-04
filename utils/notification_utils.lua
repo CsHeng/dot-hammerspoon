@@ -33,48 +33,53 @@ end
 function M.sendPersistentNotification(title, text)
     log.d(string.format("Sending persistent notification: %s - %s", title, text))
 
-    -- Register for notification center
-    hs.notify.register("org.hammerspoon.Hammerspoon")
-
     local notification = hs.notify.new({
         title = title,
         informativeText = text,
+        withdrawAfter = 0,
         hasActionButton = false,
-        soundName = hs.notify.defaultNotificationSound,
-        autoWithdraw = false, -- Let macOS auto-dismiss it from screen
+        autoWithdraw = false,
+        soundName = hs.notify.defaultNotificationSound
     })
 
-    local success = notification:send()
-    if success then
+    if notification then
+        notification:send()
         log.i("Persistent notification sent successfully")
-        return notification
     else
-        log.e("Failed to send persistent notification")
-        return nil
+        log.e("Failed to create persistent notification")
     end
+
+    return notification
 end
 
--- Use osascript to send a proper system notification that stays in notification center
-function M.sendMacOSNotification(title, message)
-    log.d(string.format("Sending macOS notification: %s - %s", title, message))
+local function sendEphemeralNotification(title, message, options)
+    options = options or {}
+    local withdraw_after = options.withdrawAfter or 3
+    local sound = options.soundName or hs.notify.defaultNotificationSound
 
-    -- Escape quotes in title and message
-    local escaped_title = title:gsub('"', '\\"')
-    local escaped_message = message:gsub('"', '\\"')
+    local notification = hs.notify.new({
+        title = title,
+        informativeText = message,
+        withdrawAfter = withdraw_after,
+        hasActionButton = false,
+        autoWithdraw = true,
+        soundName = sound
+    })
 
-    local script = string.format([[
-        display notification "%s" with title "%s"
-    ]], escaped_message, escaped_title)
-
-    local success, output, err = hs.osascript.applescript(script)
-
-    if success then
-        log.i("macOS notification sent successfully")
-        return true
+    if notification then
+        notification:send()
+        log.i("Ephemeral notification sent successfully")
     else
-        log.e(string.format("Failed to send macOS notification: %s", tostring(err)))
-        return false
+        log.e("Failed to create ephemeral notification")
     end
+
+    return notification
+end
+
+function M.sendMacOSNotification(title, message)
+    log.d(string.format("Sending macOS-style notification: %s - %s", title, message))
+    local notification = sendEphemeralNotification(title, message, {withdrawAfter = 4})
+    return notification ~= nil
 end
 
 -- Send notification with fallback mechanism
@@ -86,13 +91,13 @@ function M.sendNotification(title, message, method)
     elseif method == "macos" then
         return M.sendMacOSNotification(title, message)
     elseif method == "auto" then
-        -- Try macOS notification first, fallback to persistent
-        local success = M.sendMacOSNotification(title, message)
-        if not success then
-            log.w("macOS notification failed, trying persistent notification")
+        -- Prefer ephemeral notifications but fall back to persistent if creation fails
+        local notification = sendEphemeralNotification(title, message, {withdrawAfter = 4})
+        if not notification then
+            log.w("Ephemeral notification failed, falling back to persistent notification")
             return M.sendPersistentNotification(title, message)
         end
-        return success
+        return true
     else
         log.w(string.format("Unknown notification method: %s", method))
         return false

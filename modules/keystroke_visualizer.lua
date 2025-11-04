@@ -66,9 +66,9 @@ function M.setupToggleHotkeys()
     local circle_mods, circle_key_final = parseHotkey(circle_key)
     local continuous_mods, continuous_key_final = parseHotkey(continuous_key)
 
-    hs.hotkey.bind(toggle_mods, toggle_key_final, M.toggleKeystrokes)
-    hs.hotkey.bind(circle_mods, circle_key_final, M.toggleClickCircle)
-    hs.hotkey.bind(continuous_mods, continuous_key_final, M.toggleContinuousInput)
+    hs.hotkey.bind(toggle_mods, toggle_key_final, "Toggle Keystroke Visualizer", M.toggleKeystrokes)
+    hs.hotkey.bind(circle_mods, circle_key_final, "Toggle Click Circle", M.toggleClickCircle)
+    hs.hotkey.bind(continuous_mods, continuous_key_final, "Toggle Continuous Input", M.toggleContinuousInput)
 
     log.i("Setup keystroke visualizer hotkeys")
 end

@@ -22,23 +22,6 @@ local function getAppConfig(path)
     return config.get("applications." .. path)
 end
 
--- Smart middle click detection with browser awareness
-local function handleMiddleClick()
-    local frontmost_app = hs.application.frontmostApplication()
-
-    -- Check if current app is a browser
-    if frontmost_app and app_utils.isBrowser() then
-        log.d("Middle click in browser - letting browser handle it")
-        return false -- Don't consume the event, let browser handle it
-    else
-        -- Not in browser, trigger Mission Control
-        log.d("Middle click not in browser - triggering Mission Control")
-        local mouse_modifier = getHotkeyConfig("mouse.modifier") or {"fn", "ctrl"}
-        hs.eventtap.keyStroke(mouse_modifier, "up", 0)
-        return true -- Consume the event
-    end
-end
-
 -- Initialize mouse management
 function M.init()
     log.i("Initializing mouse management module")
@@ -94,9 +77,11 @@ function M.setupMouseButtons()
     }, function(event)
         local button = event:getProperty(hs.eventtap.event.properties.mouseEventButtonNumber)
 
-        if button == 2 then
-            -- Smart middle click: browser aware
-            return handleMiddleClick()
+        if button == 2 and not app_utils.isBrowser() then
+            -- Back button - show mission control equivalent
+            log.d("Mouse button 2: Mission control")
+            hs.eventtap.keyStroke(mouse_modifier, "up", 0)
+            return true
         elseif button == 3 then
             -- Forward button - show application windows
             log.d("Mouse button 3: Application windows")
@@ -119,20 +104,24 @@ end
 -- Setup mouse utility hotkeys
 function M.setupMouseHotkeys()
     -- Mouse speed adjustment
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "=", function()
+    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "=", "Mouse Speed Up", function()
         M.adjustMouseSpeed(0.1)
     end)
 
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "-", function()
+    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "-", "Mouse Speed Down", function()
         M.adjustMouseSpeed(-0.1)
     end)
 
     -- Mouse acceleration toggle
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "\\", function()
+    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "\\", "Toggle Mouse Acceleration", function()
         M.toggleMouseAcceleration()
     end)
 
-  
+    -- Center mouse on focused window
+    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "m", "Center Mouse on Window", function()
+        M.centerMouseOnWindow()
+    end)
+
     log.i("Setup mouse utility hotkeys")
 end
 
@@ -164,7 +153,6 @@ function M.setupPasteDefeat()
 
     log.i("Setup paste defeat hotkey")
 end
-
 
 -- Adjust mouse speed
 function M.adjustMouseSpeed(delta)

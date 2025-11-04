@@ -687,7 +687,8 @@ local function beginSession(step)
 end
 
 local function registerHotkey(mods, key, step)
-    local binding = hs.hotkey.bind(mods, key, function()
+    local desc = step > 0 and "Window Switcher (Forward)" or "Window Switcher (Backward)"
+    local binding = hs.hotkey.bind(mods, key, desc, function()
         beginSession(step)
     end, handleHotkeyRelease, function()
         beginSession(step)

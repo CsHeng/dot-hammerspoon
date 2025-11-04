@@ -46,10 +46,7 @@ function M.setupAppHotkeys()
     -- Register toggle app hotkeys
     hs.fnutils.each(launcher_apps, function(entry)
         if entry.key and entry.appname then
-            local hotkey_desc = entry.hotkey_desc or nil
-            if hotkey_desc then
-                hotkey_desc = string.format("Launch/Toggle %s", entry.appname)
-            end
+            local hotkey_desc = entry.hotkey_desc or string.format("Launch/Toggle %s", entry.appname)
             hs.hotkey.bind(entry.modifier or launcher_modifier, entry.key, hotkey_desc, function()
                 M.launchOrToggleApp(entry.appname, entry.bundleid)
             end)
@@ -102,7 +99,7 @@ function M.setupProtectionHotkeys()
         timer = nil
     }
 
-    hs.hotkey.bind(cmdq_mods, cmdq_key, function()
+    hs.hotkey.bind(cmdq_mods, cmdq_key, "Cmd+Q Protection", function()
         if cmdq_state.pressed then
             -- Second press: Quit the frontmost app
             local app = hs.application.frontmostApplication()
@@ -113,12 +110,14 @@ function M.setupProtectionHotkeys()
             cmdq_state.pressed = false
             if cmdq_state.timer then
                 cmdq_state.timer:stop()
+                cmdq_state.timer = nil
             end
         else
             -- First press: Set state and start timer
             cmdq_state.pressed = true
             cmdq_state.timer = hs.timer.doAfter(protection_delay, function()
                 cmdq_state.pressed = false
+                cmdq_state.timer = nil
             end)
             notification_utils.sendAlert("Press Cmd+Q again to quit", protection_delay)
         end

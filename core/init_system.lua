@@ -14,6 +14,8 @@ local loaded_modules = {}
 local loading_order = {}
 
 -- Define module dependencies
+local mouse_module_name = config.get("mouse.management_module", "modules.mouse_management")
+
 local module_dependencies = {
     -- Core modules (no dependencies)
     "utils.app_utils",
@@ -25,7 +27,7 @@ local module_dependencies = {
     "modules.window_management",
     "modules.app_launcher",
     "modules.media_controls",
-    "modules.mouse_management",
+    mouse_module_name,
     "modules.wifi_automation",
     "modules.keystroke_visualizer",
     "modules.notch_hider"

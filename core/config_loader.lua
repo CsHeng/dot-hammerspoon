@@ -30,10 +30,16 @@ local defaults = {
         keycastr_click_circle = {"ctrl", "cmd", "alt", "c"},
         keycastr_continuous = {"ctrl", "cmd", "alt", "i"},
 
-        mouse_modifier = {"fn", "ctrl"},
+        mouse = {
+            modifier = {"fn", "ctrl"}
+        },
 
         cmd_q_protection = {"cmd", "q"},
         paste_defeat = {"cmd", "alt", "V"}
+    },
+
+    mouse = {
+        management_module = "modules.mouse_management"
     },
 
     window = {
@@ -178,7 +184,8 @@ local function loadConfigFiles()
         "applications",
         "keycastr",
         "wifi",
-        "visual"
+        "visual",
+        "mouse"
     }
 
     for _, config_name in ipairs(config_files) do

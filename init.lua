@@ -35,12 +35,16 @@ local function loadModularSystem()
         end
     end
 
+    -- Determine which mouse management module to load (allows easy swapping)
+    local config_loader = require("core.config_loader")
+    local mouse_module_name = config_loader.get("mouse.management_module", "modules.mouse_management")
+
     -- Load feature modules (excluding expose for lazy loading)
     local feature_modules = {
         "modules/window_management",
         "modules/app_launcher",
         "modules/media_controls",
-        "modules/mouse_management",
+        mouse_module_name,
         "modules/wifi_automation",
         "modules/keystroke_visualizer",
         "modules/notch_hider"
