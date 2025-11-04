@@ -30,6 +30,7 @@ WiFi Automation provides network-aware automation features that adapt system beh
 ### Notification System
 
 - **Network Change Notifications**: Alerts user when WiFi connection changes
+- **Disconnect Handling**: Remembers the previous SSID so disconnect banners identify which network dropped (falls back to “WiFi” when none)
 - **Profile Loading Notifications**: Informs user when network profile is applied
 - **Audio Control Notifications**: Notifies of audio automation actions
 - **Error and Status Notifications**: Provides feedback on system status

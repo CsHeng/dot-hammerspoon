@@ -9,6 +9,20 @@ local log = logger.getLogger("wifi_automation")
 
 local M = {}
 
+local function formatMessage(template, value)
+    if type(template) ~= "string" then
+        return tostring(template)
+    end
+
+    local ok, result = pcall(string.format, template, value)
+    if ok then
+        return result
+    end
+
+    log.w(string.format("Failed to format WiFi notification message '%s': %s", template, tostring(result)))
+    return template
+end
+
 -- Global variables
 local wifi_watcher = nil
 local last_ssid = nil
@@ -66,6 +80,14 @@ function M.setupWiFiWatcher()
     end
 
     wifi_watcher = hs.wifi.watcher.new(M.onSSIDChanged):start()
+    last_ssid = hs.wifi.currentNetwork()
+
+    if last_ssid then
+        log.d(string.format("WiFi watcher seeded with current network: %s", last_ssid))
+    else
+        log.d("WiFi watcher seeded with no active network")
+    end
+
     log.i("WiFi watcher started")
 end
 
@@ -75,14 +97,23 @@ function M.onSSIDChanged()
     local notify_changes = getWiFiConfig("behavior.notify_on_change") or true
 
     -- Handle disconnection
-    if last_ssid and not new_ssid then
-        local info = string.format("%s Disconnected", tostring(last_ssid))
+    if not new_ssid then
+        local previous_ssid = last_ssid
+        local info
+
+        if previous_ssid then
+            info = string.format("%s Disconnected", tostring(previous_ssid))
+        else
+            info = "WiFi Disconnected"
+        end
+
         log.i(info)
 
         if notify_changes then
             local messages = getWiFiConfig("notifications.messages") or {}
             local message = messages.disconnected or "%s Disconnected"
-            notification_utils.sendNotification("WiFi Changed", string.format(message, tostring(last_ssid)))
+            local label = previous_ssid or "WiFi"
+            notification_utils.sendNotification("WiFi Changed", formatMessage(message, label))
         end
 
         last_ssid = nil
@@ -104,7 +135,7 @@ function M.onSSIDChanged()
     if notify_changes then
         local messages = getWiFiConfig("notifications.messages") or {}
         local message = messages.connected or "%s Connected"
-        notification_utils.sendNotification("WiFi Changed", string.format(message, new_ssid))
+        notification_utils.sendNotification("WiFi Changed", formatMessage(message, new_ssid))
     end
 
     last_ssid = new_ssid

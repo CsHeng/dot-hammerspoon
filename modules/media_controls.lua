@@ -5,6 +5,7 @@
 local logger = require("core.logger")
 local config = require("core.config_loader")
 local notification_utils = require("utils.notification_utils")
+local hotkey_utils = require("utils.hotkey_utils")
 
 local log = logger.getLogger("media_controls")
 local brightness = hs.brightness
@@ -45,11 +46,15 @@ function M.setupMediaHotkeys()
     hs.fnutils.each(media_controls, function(entry)
         if entry.key and entry.action then
             local desc = entry.description or string.format("Media: %s", entry.action)
-            hs.hotkey.bind(entry.modifier, entry.key, desc, function()
-                M.sendMediaKeyEvent(entry.action)
-            end)
+            local modifiers = entry.modifier or getHotkeyConfig("media.modifier") or {"ctrl", "cmd", "alt"}
+            hotkey_utils.bind(modifiers, entry.key, {
+                description = desc,
+                pressed = function()
+                    M.sendMediaKeyEvent(entry.action)
+                end
+            })
             log.d(string.format("Registered media hotkey: %s+%s -> %s",
-                table.concat(entry.modifier, "+"), entry.key, entry.action))
+                table.concat(modifiers, "+"), entry.key, entry.action))
         end
     end)
 end
@@ -61,9 +66,12 @@ function M.setupAudioControls()
     -- Only setup mute toggle here
 
     -- Mute toggle
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "m", "Audio: Toggle Mute", function()
-        M.toggleMute()
-    end)
+    hotkey_utils.bind({"ctrl", "cmd", "alt"}, "m", {
+        description = "Audio: Toggle Mute",
+        pressed = function()
+            M.toggleMute()
+        end
+    })
 
     log.i("Setup audio device control hotkeys (mute only)")
 end
@@ -71,22 +79,34 @@ end
 -- Setup system controls
 function M.setupSystemControls()
     -- Brightness controls (if supported)
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "[", "Brightness Down", function()
-        M.adjustBrightness(-0.05)
-    end)
+    hotkey_utils.bind({"ctrl", "cmd", "alt"}, "[", {
+        description = "Brightness Down",
+        pressed = function()
+            M.adjustBrightness(-0.05)
+        end
+    })
 
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "]", "Brightness Up", function()
-        M.adjustBrightness(0.05)
-    end)
+    hotkey_utils.bind({"ctrl", "cmd", "alt"}, "]", {
+        description = "Brightness Up",
+        pressed = function()
+            M.adjustBrightness(0.05)
+        end
+    })
 
     -- Keyboard backlight (if supported)
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, ";", "Keyboard Backlight Down", function()
-        M.adjustKeyboardBacklight(-0.1)
-    end)
+    hotkey_utils.bind({"ctrl", "cmd", "alt"}, ";", {
+        description = "Keyboard Backlight Down",
+        pressed = function()
+            M.adjustKeyboardBacklight(-0.1)
+        end
+    })
 
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "'", "Keyboard Backlight Up", function()
-        M.adjustKeyboardBacklight(0.1)
-    end)
+    hotkey_utils.bind({"ctrl", "cmd", "alt"}, "'", {
+        description = "Keyboard Backlight Up",
+        pressed = function()
+            M.adjustKeyboardBacklight(0.1)
+        end
+    })
 
     log.i("Setup system control hotkeys")
 end

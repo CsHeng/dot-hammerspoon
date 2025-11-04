@@ -20,11 +20,11 @@ init -> initSystem: require("core.init_system")
 initSystem -> initSystem: register modules
 initSystem -> hotkey: bind startup hotkeys
 initSystem -> media: load module
-media -> hotkey: bind media hotkeys (no description)
+media -> hotkey: bind media hotkeys (description forwarded)
 initSystem -> launcher: load module
 launcher -> hotkey: bind launcher hotkeys
 initSystem -> keyviz: load module
-keyviz -> hotkey: bind visualizer hotkeys (no description)
+keyviz -> hotkey: bind visualizer hotkeys (description forwarded)
 initSystem --> init: modules ready
 init --> engine: initialization complete
 
@@ -36,8 +36,8 @@ notification -> alert: hs.alert.show(...)
 alert --> user: single toast shown
 
 note over hotkey, alert
-Removed the description parameter from hs.hotkey.bind,
-so the framework no longer displays a second automatic toast.
+All hotkeys run through `hotkey_utils.bind`, which stamps descriptions into the log
+while runtime feedback stays delegated to notification_utils.
 end note
 
 @enduml

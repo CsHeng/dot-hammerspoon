@@ -19,8 +19,8 @@ keyviz -> alert: hs.alert.show("KeyCastr: Enabled/Disabled")
 alert --> user: status toast (single)
 
 note right of keyviz
-The hotkey binding omits a description string, eliminating duplicate
-alerts while keeping explicit status feedback via hs.alert.
+`hotkey_utils.bind` writes the description into the logger without enabling the
+default overlay, leaving only the explicit hs.alert status toast.
 end note
 
 @enduml

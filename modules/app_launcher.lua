@@ -6,6 +6,7 @@ local logger = require("core.logger")
 local config = require("core.config_loader")
 local app_utils = require("utils.app_utils")
 local notification_utils = require("utils.notification_utils")
+local hotkey_utils = require("utils.hotkey_utils")
 
 local log = logger.getLogger("app_launcher")
 
@@ -47,11 +48,15 @@ function M.setupAppHotkeys()
     hs.fnutils.each(launcher_apps, function(entry)
         if entry.key and entry.appname then
             local hotkey_desc = entry.hotkey_desc or string.format("Launch/Toggle %s", entry.appname)
-            hs.hotkey.bind(entry.modifier or launcher_modifier, entry.key, hotkey_desc, function()
-                M.launchOrToggleApp(entry.appname, entry.bundleid)
-            end)
+            local modifiers = entry.modifier or launcher_modifier
+            hotkey_utils.bind(modifiers, entry.key, {
+                description = hotkey_desc,
+                pressed = function()
+                    M.launchOrToggleApp(entry.appname, entry.bundleid)
+                end
+            })
             log.d(string.format("Registered hotkey: %s+%s -> %s",
-                table.concat(entry.modifier or launcher_modifier, "+"),
+                table.concat(modifiers, "+"),
                 entry.key, entry.appname))
         end
     end)
@@ -66,9 +71,12 @@ function M.setupRestartHotkeys()
     hs.fnutils.each(problematic_apps, function(entry)
         if entry.key and entry.appname then
             local hotkey_desc = string.format("Restart %s", entry.appname)
-            hs.hotkey.bind(entry.modifier, entry.key, hotkey_desc, function()
-                M.restartApp(entry.appname, entry.bundleid)
-            end)
+            hotkey_utils.bind(entry.modifier, entry.key, {
+                description = hotkey_desc,
+                pressed = function()
+                    M.restartApp(entry.appname, entry.bundleid)
+                end
+            })
             log.d(string.format("Registered restart hotkey: %s+%s -> %s",
                 table.concat(entry.modifier, "+"),
                 entry.key, entry.appname))
@@ -82,46 +90,43 @@ function M.setupProtectionHotkeys()
     local cmdq_hotkey = getHotkeyConfig("protection.cmd_q") or {"cmd", "q"}
     local protection_delay = 0.5 -- seconds
 
-    -- Extract modifiers and key from the hotkey configuration
-    local function parseHotkey(hotkey_config)
-        local mods = {}
-        for i = 1, #hotkey_config - 1 do
-            mods[i] = hotkey_config[i]
-        end
-        local key = hotkey_config[#hotkey_config]
-        return mods, key
+    local cmdq_mods, cmdq_key = hotkey_utils.parseHotkey(cmdq_hotkey)
+    if not cmdq_key then
+        log.e("Cmd+Q protection hotkey configuration is invalid")
+        return
     end
-
-    local cmdq_mods, cmdq_key = parseHotkey(cmdq_hotkey)
 
     local cmdq_state = {
         pressed = false,
         timer = nil
     }
 
-    hs.hotkey.bind(cmdq_mods, cmdq_key, "Cmd+Q Protection", function()
-        if cmdq_state.pressed then
-            -- Second press: Quit the frontmost app
-            local app = hs.application.frontmostApplication()
-            if app then
-                log.i(string.format("Force quitting application: %s", app:name()))
-                app:kill()
-            end
-            cmdq_state.pressed = false
-            if cmdq_state.timer then
-                cmdq_state.timer:stop()
-                cmdq_state.timer = nil
-            end
-        else
-            -- First press: Set state and start timer
-            cmdq_state.pressed = true
-            cmdq_state.timer = hs.timer.doAfter(protection_delay, function()
+    hotkey_utils.bind(cmdq_mods, cmdq_key, {
+        description = "Cmd+Q Protection",
+        pressed = function()
+            if cmdq_state.pressed then
+                -- Second press: Quit the frontmost app
+                local app = hs.application.frontmostApplication()
+                if app then
+                    log.i(string.format("Force quitting application: %s", app:name()))
+                    app:kill()
+                end
                 cmdq_state.pressed = false
-                cmdq_state.timer = nil
-            end)
-            notification_utils.sendAlert("Press Cmd+Q again to quit", protection_delay)
+                if cmdq_state.timer then
+                    cmdq_state.timer:stop()
+                    cmdq_state.timer = nil
+                end
+            else
+                -- First press: Set state and start timer
+                cmdq_state.pressed = true
+                cmdq_state.timer = hs.timer.doAfter(protection_delay, function()
+                    cmdq_state.pressed = false
+                    cmdq_state.timer = nil
+                end)
+                notification_utils.sendAlert("Press Cmd+Q again to quit", protection_delay)
+            end
         end
-    end)
+    })
 
     log.i("Setup Cmd+Q protection hotkey")
 end

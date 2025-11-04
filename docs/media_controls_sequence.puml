@@ -20,8 +20,8 @@ notification -> alert: hs.alert.show(...)
 alert --> user: toast displayed once
 
 note right of media
-Handler no longer passes a description string to hs.hotkey.bind,
-so only notification_utils triggers user feedback.
+`hotkey_utils.bind` stamps descriptions into the log while binding without the
+default overlay, preventing the built-in hs.hotkey toast from appearing.
 end note
 
 @enduml

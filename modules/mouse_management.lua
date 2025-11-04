@@ -4,6 +4,7 @@
 local logger = require("core.logger")
 local config = require("core.config_loader")
 local app_utils = require("utils.app_utils")
+local hotkey_utils = require("utils.hotkey_utils")
 
 local log = logger.getLogger("mouse_management")
 
@@ -104,23 +105,35 @@ end
 -- Setup mouse utility hotkeys
 function M.setupMouseHotkeys()
     -- Mouse speed adjustment
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "=", "Mouse Speed Up", function()
-        M.adjustMouseSpeed(0.1)
-    end)
+    hotkey_utils.bind({"ctrl", "cmd", "alt"}, "=", {
+        description = "Mouse Speed Up",
+        pressed = function()
+            M.adjustMouseSpeed(0.1)
+        end
+    })
 
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "-", "Mouse Speed Down", function()
-        M.adjustMouseSpeed(-0.1)
-    end)
+    hotkey_utils.bind({"ctrl", "cmd", "alt"}, "-", {
+        description = "Mouse Speed Down",
+        pressed = function()
+            M.adjustMouseSpeed(-0.1)
+        end
+    })
 
     -- Mouse acceleration toggle
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "\\", "Toggle Mouse Acceleration", function()
-        M.toggleMouseAcceleration()
-    end)
+    hotkey_utils.bind({"ctrl", "cmd", "alt"}, "\\", {
+        description = "Toggle Mouse Acceleration",
+        pressed = function()
+            M.toggleMouseAcceleration()
+        end
+    })
 
     -- Center mouse on focused window
-    hs.hotkey.bind({"ctrl", "cmd", "alt"}, "m", "Center Mouse on Window", function()
-        M.centerMouseOnWindow()
-    end)
+    hotkey_utils.bind({"ctrl", "cmd", "alt"}, "m", {
+        description = "Center Mouse on Window",
+        pressed = function()
+            M.centerMouseOnWindow()
+        end
+    })
 
     log.i("Setup mouse utility hotkeys")
 end
@@ -129,27 +142,24 @@ end
 function M.setupPasteDefeat()
     local paste_hotkey = getHotkeyConfig("protection.paste_defeat") or {"cmd", "alt", "V"}
 
-    -- Extract modifiers and key from the hotkey configuration
-    local function parseHotkey(hotkey_config)
-        local mods = {}
-        for i = 1, #hotkey_config - 1 do
-            mods[i] = hotkey_config[i]
-        end
-        local key = hotkey_config[#hotkey_config]
-        return mods, key
+    local paste_mods, paste_key = hotkey_utils.parseHotkey(paste_hotkey)
+    if not paste_key then
+        log.e("Paste defeat hotkey configuration is invalid")
+        return
     end
 
-    local paste_mods, paste_key = parseHotkey(paste_hotkey)
-
-    hs.hotkey.bind(paste_mods, paste_key, "Paste Defeat", function()
-        local clipboard_content = hs.pasteboard.getContents()
-        if clipboard_content and clipboard_content ~= "" then
-            hs.eventtap.keyStrokes(clipboard_content)
-            log.i("Paste defeat: Pasted clipboard content")
-        else
-            log.w("Paste defeat: No clipboard content")
+    hotkey_utils.bind(paste_mods, paste_key, {
+        description = "Paste Defeat",
+        pressed = function()
+            local clipboard_content = hs.pasteboard.getContents()
+            if clipboard_content and clipboard_content ~= "" then
+                hs.eventtap.keyStrokes(clipboard_content)
+                log.i("Paste defeat: Pasted clipboard content")
+            else
+                log.w("Paste defeat: No clipboard content")
+            end
         end
-    end)
+    })
 
     log.i("Setup paste defeat hotkey")
 end

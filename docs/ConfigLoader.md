@@ -171,10 +171,13 @@ local config = require("core.config_loader")
 local hotkey_modifiers = config.get("hotkeys.window.hyper", {"ctrl", "alt"})
 local reload_key = config.get("hotkeys.system.reload", {"ctrl", "cmd", "alt", "R"})
 
--- Use configuration in hotkey binding
-hs.hotkey.bind(hotkey_modifiers, "left", "Move Left", function()
-    -- Window movement logic
-end)
+local hotkeys = require("utils.hotkey_utils")
+hotkeys.bind(hotkey_modifiers, "left", {
+    description = "Move Left",
+    pressed = function()
+        -- Window movement logic
+    end
+})
 ```
 
 ### Configuration Validation
@@ -282,9 +285,13 @@ local hotkeys = config.get("hotkeys.my_module", {})
 
 -- Setup hotkeys if configured
 if hotkeys.toggle then
-    hs.hotkey.bind(hotkeys.toggle.modifier, hotkeys.toggle.key, "Toggle", function()
-        M.toggle()
-    end)
+    local hk = require("utils.hotkey_utils")
+    hk.bind(hotkeys.toggle, {
+        description = "Toggle my module",
+        pressed = function()
+            M.toggle()
+        end
+    })
 end
 ```
 

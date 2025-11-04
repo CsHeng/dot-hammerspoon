@@ -25,11 +25,16 @@ else Regular network change
     wifi -> config: get("wifi.notifications.messages.connected")
     config --> wifi: template
     wifi -> notification: sendNotification("WiFi Changed", formatted)
+else Disconnected
+    wifi -> config: get("wifi.notifications.messages.disconnected")
+    config --> wifi: template
+    wifi -> notification: sendNotification("WiFi Changed", formatted fallback label)
 end
 
 note right of wifi
-Module tracks last_ssid to avoid redundant alerts and
-optionally unmutes audio when leaving work networks.
+Module seeds last_ssid on startup, avoids redundant alerts,
+and optionally unmutes audio when leaving work networks.
+Disconnects fall back to the previous SSID (or "WiFi" when unknown).
 end note
 
 @enduml

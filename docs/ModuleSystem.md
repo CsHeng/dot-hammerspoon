@@ -524,9 +524,11 @@ local module = {
 local module = {
     initialize = function(config)
         -- Register for events
-        hs.hotkey.bind(config.hotkey, function()
-            module.handleHotkey()
-        end)
+        local hotkeys = require("utils.hotkey_utils")
+        hotkeys.bind(config.hotkey, {
+            description = "My module hotkey",
+            pressed = module.handleHotkey
+        })
         return true
     end
 }

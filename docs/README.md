@@ -13,6 +13,7 @@ This directory contains comprehensive documentation for the modular Hammerspoon 
 - **[CoreLogger.md](CoreLogger.md)** - Logging system with levels, outputs, and formatting
 - **[ConfigLoader.md](ConfigLoader.md)** - Configuration file loading, merging, and validation
 - **[InitSystem.md](InitSystem.md)** - Module initialization system with dependency resolution
+- **[HotkeyUtils.md](HotkeyUtils.md)** - Shared hotkey binding wrapper that logs descriptive shortcuts while suppressing duplicate overlays
 
 ### 🛠️ Utility Modules
 - **[AppUtils.md](AppUtils.md)** - Application management, toggling, and browser detection
@@ -29,12 +30,6 @@ This directory contains comprehensive documentation for the modular Hammerspoon 
 - **[KeystrokeVisualizer.md](KeystrokeVisualizer.md)** - Keystroke visualization with display modes and effects
 - **[WindowExpose.md](WindowExpose.md)** - Alt-Tab style window switcher with live previews (lazy-loaded)
 - **[NotchHider.md](NotchHider.md)** - Menu-bar notch masking for built-in displays with rounded canvas overlay
-
-### ⚙️ Configuration
-- **[HotkeyConfiguration.md](HotkeyConfiguration.md)** - Hotkey definitions, modifiers, and customization
-- **[AppConfiguration.md](AppConfiguration.md)** - Application launcher and media control configurations
-- **[WiFiConfiguration.md](WiFiConfiguration.md)** - Network profiles and automation settings
-- **[KeyCastrConfiguration.md](KeyCastrConfiguration.md)** - Keystroke visualization appearance and behavior
 
 ## Quick Start
 
@@ -70,6 +65,7 @@ docs/
 ├── CoreLogger.md               # Core logging infrastructure
 ├── ConfigLoader.md             # Configuration loading system
 ├── InitSystem.md               # Module initialization
+├── HotkeyUtils.md              # Hotkey binding helper
 ├── AppUtils.md                 # Application utilities
 ├── DisplayUtils.md             # Display management utilities
 ├── NotificationUtils.md        # Notification system
@@ -80,9 +76,5 @@ docs/
 ├── MouseManagement.md          # Mouse and input management
 ├── WiFiAutomation.md          # Network automation
 ├── KeystrokeVisualizer.md     # Keystroke visualization
-├── WindowExpose.md             # Alt-Tab style window switcher
-├── HotkeyConfiguration.md     # Hotkey setup and customization
-├── AppConfiguration.md         # Application configuration
-├── WiFiConfiguration.md        # Network and WiFi configuration
-└── KeyCastrConfiguration.md   # Visualization configuration
+└── WindowExpose.md            # Alt-Tab style window switcher
 ```

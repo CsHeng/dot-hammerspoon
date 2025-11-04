@@ -6,6 +6,17 @@ local log = logger.getLogger("notification_utils")
 
 local M = {}
 
+local function escapeForJavascript(str)
+    str = str or ""
+    str = tostring(str)
+    str = str:gsub("\\", "\\\\")
+    str = str:gsub("\"", "\\\"")
+    str = str:gsub("\n", "\\n")
+    str = str:gsub("\r", "\\r")
+    str = str:gsub("\t", "\\t")
+    return str
+end
+
 -- Function to find built-in output device specifically
 function M.getBuiltinOutputDevice()
     local all_devices = hs.audiodevice.allOutputDevices()
@@ -33,53 +44,50 @@ end
 function M.sendPersistentNotification(title, text)
     log.d(string.format("Sending persistent notification: %s - %s", title, text))
 
+    -- Register for notification center
+    hs.notify.register("org.hammerspoon.Hammerspoon")
+
     local notification = hs.notify.new({
         title = title,
         informativeText = text,
         withdrawAfter = 0,
         hasActionButton = false,
-        autoWithdraw = false,
-        soundName = hs.notify.defaultNotificationSound
+        soundName = hs.notify.defaultNotificationSound,
+        autoWithdraw = false, -- Let macOS auto-dismiss it from screen
     })
 
-    if notification then
-        notification:send()
+    local success = notification:send()
+    if success then
         log.i("Persistent notification sent successfully")
+        return notification
     else
-        log.e("Failed to create persistent notification")
+        log.e("Failed to send persistent notification")
+        return nil
     end
-
-    return notification
 end
 
-local function sendEphemeralNotification(title, message, options)
-    options = options or {}
-    local withdraw_after = options.withdrawAfter or 3
-    local sound = options.soundName or hs.notify.defaultNotificationSound
-
-    local notification = hs.notify.new({
-        title = title,
-        informativeText = message,
-        withdrawAfter = withdraw_after,
-        hasActionButton = false,
-        autoWithdraw = true,
-        soundName = sound
-    })
-
-    if notification then
-        notification:send()
-        log.i("Ephemeral notification sent successfully")
-    else
-        log.e("Failed to create ephemeral notification")
-    end
-
-    return notification
-end
-
+-- Use osascript to send a proper system notification that stays in notification center
 function M.sendMacOSNotification(title, message)
-    log.d(string.format("Sending macOS-style notification: %s - %s", title, message))
-    local notification = sendEphemeralNotification(title, message, {withdrawAfter = 4})
-    return notification ~= nil
+    title = title or ""
+    message = message or ""
+
+    log.d(string.format("Sending macOS notification (JXA): %s - %s", title, message))
+
+    local script = string.format([[
+        var app = Application.currentApplication();
+        app.includeStandardAdditions = true;
+        app.displayNotification("%s", {withTitle: "%s"});
+    ]], escapeForJavascript(message), escapeForJavascript(title))
+
+    local success, _, err = hs.osascript.javascript(script)
+
+    if not success then
+        log.e(string.format("Failed to send macOS notification: %s", tostring(err)))
+    else
+        log.i("macOS notification sent successfully")
+    end
+
+    return success
 end
 
 -- Send notification with fallback mechanism
@@ -91,13 +99,13 @@ function M.sendNotification(title, message, method)
     elseif method == "macos" then
         return M.sendMacOSNotification(title, message)
     elseif method == "auto" then
-        -- Prefer ephemeral notifications but fall back to persistent if creation fails
-        local notification = sendEphemeralNotification(title, message, {withdrawAfter = 4})
-        if not notification then
-            log.w("Ephemeral notification failed, falling back to persistent notification")
+        -- Try macOS notification first, fallback to persistent
+        local success = M.sendMacOSNotification(title, message)
+        if not success then
+            log.w("macOS notification failed, trying persistent notification")
             return M.sendPersistentNotification(title, message)
         end
-        return true
+        return success
     else
         log.w(string.format("Unknown notification method: %s", method))
         return false

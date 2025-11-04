@@ -27,8 +27,8 @@ launcher -> timer: stop()
 launcher --> user: app terminated without extra toast
 
 note over hotkey, launcher
-The hotkey is bound without a descriptive string, preventing
-hs.hotkey from emitting its own duplicate overlay.
+`hotkey_utils.bind` keeps the hotkey logger descriptive while binding without
+the built-in overlay, so only our toast appears at runtime.
 end note
 
 @enduml
