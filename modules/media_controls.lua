@@ -8,6 +8,7 @@ local notification_utils = require("utils.notification_utils")
 local hotkey_utils = require("utils.hotkey_utils")
 
 local log = logger.getLogger("media_controls")
+local MODULE_NAME = "media_controls"
 local brightness = hs.brightness
 
 local M = {}
@@ -48,6 +49,7 @@ function M.setupMediaHotkeys()
             local desc = entry.description or string.format("Media: %s", entry.action)
             local modifiers = entry.modifier or getHotkeyConfig("media.modifier") or {"ctrl", "cmd", "alt"}
             hotkey_utils.bind(modifiers, entry.key, {
+                module = MODULE_NAME,
                 description = desc,
                 pressed = function()
                     M.sendMediaKeyEvent(entry.action)
@@ -67,6 +69,7 @@ function M.setupAudioControls()
 
     -- Mute toggle
     hotkey_utils.bind({"ctrl", "cmd", "alt"}, "m", {
+        module = MODULE_NAME,
         description = "Audio: Toggle Mute",
         pressed = function()
             M.toggleMute()
@@ -80,6 +83,7 @@ end
 function M.setupSystemControls()
     -- Brightness controls (if supported)
     hotkey_utils.bind({"ctrl", "cmd", "alt"}, "[", {
+        module = MODULE_NAME,
         description = "Brightness Down",
         pressed = function()
             M.adjustBrightness(-0.05)
@@ -87,6 +91,7 @@ function M.setupSystemControls()
     })
 
     hotkey_utils.bind({"ctrl", "cmd", "alt"}, "]", {
+        module = MODULE_NAME,
         description = "Brightness Up",
         pressed = function()
             M.adjustBrightness(0.05)
@@ -95,6 +100,7 @@ function M.setupSystemControls()
 
     -- Keyboard backlight (if supported)
     hotkey_utils.bind({"ctrl", "cmd", "alt"}, ";", {
+        module = MODULE_NAME,
         description = "Keyboard Backlight Down",
         pressed = function()
             M.adjustKeyboardBacklight(-0.1)
@@ -102,6 +108,7 @@ function M.setupSystemControls()
     })
 
     hotkey_utils.bind({"ctrl", "cmd", "alt"}, "'", {
+        module = MODULE_NAME,
         description = "Keyboard Backlight Up",
         pressed = function()
             M.adjustKeyboardBacklight(0.1)

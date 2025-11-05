@@ -1,134 +1,31 @@
 # Configuration System
 
-## Overview
+## Role
+- Defines how defaults, user overrides, and live mutations combine to drive module behaviour.
+- Keeps configuration declarative so feature modules remain stateless and easy to reload.
 
-The Configuration System provides centralized management of all Hammerspoon settings across multiple configuration files. It supports nested configuration access, validation, and hot reloading for seamless customization.
+## Building Blocks
+- **Core loader**: `core/config_loader.lua` seeds defaults and merges `config/*.lua` overrides.
+- **Module wiring**: `core/init_system.lua` asks the loader which modules to register (e.g., `mouse.management_module`).
+- **Runtime updates**: modules call `config.set` to persist toggles (such as KeyCastr enablement) back into the shared store.
 
-## Configuration Structure
+## Data Flow
+1. Defaults are cloned into memory during loader initialisation.
+2. Each file listed in the loader (`hotkeys`, `applications`, `keycastr`, `wifi`, `visual`, `mouse`) is required and merged in.
+3. Validation runs once to flag structural issues without aborting startup.
+4. Modules consume values via `config.get("section.key")`, optionally supplying fallbacks for optional settings.
 
-### Configuration Files
+## Extending Configuration
+- Add a new config file under `config/` and register it in the loader’s `config_files` list.
+- Document new keys alongside the module that consumes them; prefer nested tables to keep namespaces clear.
+- When exposing booleans or enumerations, default them in `core/config_loader.lua` so hot reload works even before user overrides exist.
 
-```
-config/
-├── applications.lua    # App definitions and hotkey bindings
-├── hotkeys.lua        # Hotkey definitions and modifier patterns
-├── keycastr.lua       # Keystroke visualization settings
-├── visual.lua         # Visual and UI appearance settings
-└── wifi.lua          # WiFi automation and network profiles
-```
+## Observability
+- Loader logs every file it successfully merges, and issues warnings when modules or keys are missing.
+- Modules should log the configuration they depend on during initialisation, mirroring the behaviour in window, mouse, and media modules.
+- Use `hs.inspect(config_loader.getAll())` from the console for ad-hoc debugging; the result is a deep clone and safe to inspect.
 
-### Key Features
-
-- **Centralized Access**: Single point of access for all configuration values
-- **Nested Structure**: Support for deep configuration hierarchies
-- **Hot Reloading**: Automatic reloading when configuration files change
-- **Validation**: Built-in configuration validation with error reporting
-- **Default Values**: Automatic fallback to default settings
-
-## Configuration Sections
-
-### Applications Configuration
-
-Manages application definitions and hotkey mappings:
-
-```lua
-config.applications = {
-    launcher_apps = {},      -- App launcher hotkeys
-    media_controls = {},     -- Media control bindings
-    problematic_apps = {},   -- Apps that may need restarting
-    browsers = {},          -- Browser identification
-    startup = {}            -- Automatic app launch settings
-}
-```
-
-### Hotkey Configuration
-
-Centralizes all hotkey definitions:
-
-```lua
-config.hotkeys = {
-    system = {},            -- System management hotkeys
-    window = {},            -- Window positioning shortcuts
-    launcher = {},          -- App launcher modifier
-    media = {},             -- Media control modifier
-    keycastr = {}           -- Keystroke visualizer controls
-}
-```
-
-### Visual Configuration
-
-Controls appearance and visual behavior:
-
-```lua
-config.visual = {
-    window = {},            -- Window management visual settings
-    notifications = {},     -- Notification appearance
-    themes = {},           -- Color themes
-    animations = {}        -- Animation settings
-}
-```
-
-### WiFi Configuration
-
-Network automation and profiles:
-
-```lua
-config.wifi = {
-    muted_ssids = {},       -- Networks that trigger audio muting
-    network_profiles = {},  -- Per-network configurations
-    behavior = {},         -- Automation settings
-    notifications = {}     -- Network change notifications
-}
-```
-
-## Usage
-
-### Accessing Configuration
-
-```lua
--- Get configuration values with fallback
-local enabled = config.get("keycastr.enabled", false)
-local tolerance = config.get("visual.window.tolerance", 20)
-
--- Set configuration values
-config.set("keycastr.enabled", true)
-config.set("visual.window.tolerance", 15)
-
--- Get entire configuration section
-local app_config = config.get("applications")
-```
-
-### Configuration Validation
-
-```lua
--- Validate entire configuration
-local valid, issues = config.validate()
-if not valid then
-    for _, issue in ipairs(issues) do
-        print("Configuration issue:", issue)
-    end
-end
-```
-
-## Integration
-
-### Module Integration
-
-- **All Modules**: Every module accesses configuration through this system
-- **Init System**: Coordinates module initialization with configuration
-- **Hot Reload**: Automatic reloading when files change
-- **Error Handling**: Graceful degradation with fallback values
-
-### Hotkey System Integration
-
-- **Central Binding**: All hotkey definitions centralized in configuration
-- **Modifier Patterns**: Consistent modifier key usage across modules
-- **Conflict Detection**: Automatic detection of hotkey conflicts
-- **Dynamic Loading**: Runtime hotkey changes supported
-
-## Performance
-
-- **Lazy Loading**: Configuration files loaded on demand
-- **Caching**: Frequently accessed values cached for performance
-- **Efficient Validation**: Optimized configuration validation
-- **Memory Management**: Automatic cleanup of unused configuration
+## Maintenance Notes
+- Keep configuration focused on behaviour, not implementation details—code should remain the source of truth for algorithms.
+- Avoid storing secrets or machine-specific paths; rely on environment variables or macOS services for sensitive data.
+- The configuration store is mutable in memory; treat it as stateful and isolate write-backs to user-facing toggles.

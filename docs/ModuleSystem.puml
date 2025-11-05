@@ -1,0 +1,27 @@
+@startuml ModuleSystem
+title Module Registration and Lifecycle
+
+actor User as Dev
+participant "modules/foo.lua" as Module
+participant "core/init_system.lua" as InitSystem
+participant "Module Registry" as Registry
+
+Dev -> Module : require + define hooks
+Module -> InitSystem : registerModule(name, hooks)
+InitSystem -> Registry : store descriptor
+
+Dev -> InitSystem : init()
+InitSystem -> Registry : iterate descriptors
+Registry -> InitSystem : next descriptor
+InitSystem -> Module : call init()
+
+== Lazy Module ==
+Dev -> InitSystem : ensureModule("window_expose")
+InitSystem -> Module : init() if needed
+
+== Debugging ==
+Dev -> InitSystem : restart("mouse_management")
+InitSystem -> Module : stop()
+InitSystem -> Module : init()
+
+@enduml

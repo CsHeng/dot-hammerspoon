@@ -35,7 +35,7 @@ local defaults = {
         },
 
         cmd_q_protection = {"cmd", "q"},
-        paste_defeat = {"cmd", "alt", "V"}
+        paste_defeat = {"cmd", "alt", "V"},
     },
 
     mouse = {
@@ -77,6 +77,11 @@ local defaults = {
             max_chars = 20,
             timeout = 1.0
         }
+    },
+
+    hotkeys_announcements = {
+        default = false,
+        modules = {}
     },
 
     wifi = {

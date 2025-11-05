@@ -19,14 +19,14 @@ This is a modular Hammerspoon configuration for macOS automation, providing wind
 - `⌃⌥O`: Restore original position
 
 ### Application Launchers
-- `⌘⌥C`: Cursor
+- `⌘⌥C`: Visual Studio Code
 - `⌘⌥Q`: QQ
 - `⌘⌥W`: WeChat
 - `⌘⌥D`: DingTalk
 - `⌘⌥G`: Google Chrome
 - `⌘⌥F`: Finder
 - `⌘⌥H`: Hammerspoon
-- `F10`: Ghostty
+- `F10`: WezTerm
 
 ### Media Controls
 - `⌘⌃⌥←/→`: Previous/Next track
@@ -35,12 +35,11 @@ This is a modular Hammerspoon configuration for macOS automation, providing wind
 
 ## Documentation
 
-See `/docs/` directory for comprehensive documentation:
+- System overviews: `docs/SystemArchitecture.md`, `docs/ConfigurationSystem.md`, `docs/ModuleSystem.md`
+- Module and utility summaries: `docs/modules/*.md`
+- Diagrams: system-level in `docs/*.puml`, module-specific in `docs/modules/diagrams/`
 
-- **[System Architecture](docs/SystemArchitecture.md)** - High-level system design
-- **[Configuration System](docs/ConfigurationSystem.md)** - Settings management
-- **[Module System](docs/ModuleSystem.md)** - Module loading and dependencies
-- **[Feature Modules](docs/README.md)** - Individual module documentation
+Validate PlantUML files with `plantuml --check-syntax <diagram-path>`.
 
 ## Architecture
 
@@ -75,6 +74,7 @@ See `/docs/` directory for comprehensive documentation:
 - **`keycastr.lua`** - KeyCastr settings
 - **`wifi.lua`** - WiFi automation settings
 - **`visual.lua`** - Visual configuration
+- **Announcement policy**: `hotkeys.announcements` toggles module-level toast overlays handled by `utils/hotkey_utils`
 
 ## Key Features
 
@@ -93,7 +93,7 @@ See `/docs/` directory for comprehensive documentation:
 ├── modules/                    # Feature modules
 ├── utils/                      # Utility modules
 ├── config/                     # Configuration files
-└── docs/                       # Documentation
+└── docs/                       # Documentation (plus PlantUML diagrams in docs/diagrams/)
 ```
 
 ## Requirements
@@ -110,4 +110,4 @@ See `/docs/` directory for comprehensive documentation:
 - Use lazy loading for heavy operations
 - Follow established naming conventions
 
-For detailed documentation, see the `/docs/` directory.
+For detailed documentation, see the `docs/` summaries and accompanying diagrams.

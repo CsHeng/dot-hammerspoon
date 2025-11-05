@@ -6,6 +6,7 @@ local config = require("core.config_loader")
 local hotkey_utils = require("utils.hotkey_utils")
 
 local log = logger.getLogger("keystroke_visualizer")
+local MODULE_NAME = "keystroke_visualizer"
 
 local M = {}
 
@@ -54,14 +55,17 @@ function M.setupToggleHotkeys()
     local continuous_key = getHotkeyConfig("keycastr.continuous") or {"ctrl", "cmd", "alt", "i"}
 
     hotkey_utils.bind(toggle_key, {
+        module = MODULE_NAME,
         description = "Toggle Keystroke Visualizer",
         pressed = M.toggleKeystrokes
     })
     hotkey_utils.bind(circle_key, {
+        module = MODULE_NAME,
         description = "Toggle Click Circle",
         pressed = M.toggleClickCircle
     })
     hotkey_utils.bind(continuous_key, {
+        module = MODULE_NAME,
         description = "Toggle Continuous Input",
         pressed = M.toggleContinuousInput
     })

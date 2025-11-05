@@ -4,6 +4,7 @@
 
 local hotkey = require("hs.hotkey")
 local logger = require("core.logger")
+local config = require("core.config_loader")
 
 local log = logger.getLogger("hotkey_utils")
 
@@ -44,6 +45,109 @@ local function ensureHandler(fn, allowNil)
         return nil
     end
     return function() end
+end
+
+local function shouldAnnounce(moduleName, override)
+    if type(override) == "boolean" then
+        return override
+    end
+
+    local announcementConfig = config.get("hotkeys_announcements", {})
+    if type(announcementConfig) ~= "table" then
+        return false
+    end
+
+    if moduleName then
+        local modulesConfig = announcementConfig.modules
+        if type(modulesConfig) == "table" then
+            local modulePreference = modulesConfig[moduleName]
+            if modulePreference ~= nil then
+                return modulePreference and true or false
+            end
+        end
+    end
+
+    if announcementConfig.default ~= nil then
+        return announcementConfig.default and true or false
+    end
+
+    return false
+end
+
+local modifierSymbols = {
+    cmd = "⌘",
+    command = "⌘",
+    alt = "⌥",
+    option = "⌥",
+    ctrl = "⌃",
+    control = "⌃",
+    shift = "⇧",
+    fn = "Fn",
+    super = "⌘",
+    meta = "⌃"
+}
+
+local function formatModifiers(modifiers)
+    if type(modifiers) ~= "table" or #modifiers == 0 then
+        return ""
+    end
+
+    local parts = {}
+    for i = 1, #modifiers do
+        local mod = tostring(modifiers[i])
+        local symbol = modifierSymbols[string.lower(mod)]
+        parts[i] = symbol or string.upper(mod)
+    end
+    return table.concat(parts)
+end
+
+local function formatKey(key)
+    if type(key) ~= "string" then
+        return tostring(key)
+    end
+
+    local lower = string.lower(key)
+    local special = {
+        space = "SPACE",
+        ["return"] = "RETURN",
+        enter = "ENTER",
+        tab = "TAB",
+        left = "LEFT",
+        right = "RIGHT",
+        up = "UP",
+        down = "DOWN",
+        esc = "ESC",
+        escape = "ESC",
+        backspace = "BACKSPACE",
+        delete = "DELETE",
+        home = "HOME",
+        ["end"] = "END",
+        pageup = "PAGEUP",
+        pagedown = "PAGEDOWN"
+    }
+
+    if special[lower] then
+        return special[lower]
+    end
+
+    if #key == 1 then
+        return string.upper(key)
+    end
+
+    return string.upper(key)
+end
+
+local function buildMessage(modifiers, key, description)
+    local modifierString = formatModifiers(modifiers)
+    local keyString = formatKey(key)
+    local base = modifierString .. keyString
+    if base == "" then
+        base = tostring(key)
+    end
+    if type(description) == "string" and description ~= "" then
+        return string.format("%s: %s", base, description)
+    end
+    return base
 end
 
 -- Bind a hotkey while controlling whether Hammerspoon displays its default alert.
@@ -95,6 +199,11 @@ function M.bind(modifiersOrSpec, keyOrOptions, maybeOptions)
     local repeatFn = options.repeatFn or options.repeat_handler or options.repeated
     local description = options.description
     local useHsAlert = options.use_hs_alert and description ~= nil
+    local announce = shouldAnnounce(options.module, options.announce)
+
+    if announce and description ~= nil then
+        useHsAlert = true
+    end
 
     if type(pressed) ~= "function" then
         log.w(string.format("Hotkey '%s' has no pressed handler; binding noop handler.", tostring(key)))
@@ -119,12 +228,7 @@ function M.bind(modifiersOrSpec, keyOrOptions, maybeOptions)
             return nil
         end
 
-        local originalMsg = newBinding.msg or ""
-        if originalMsg ~= "" then
-            newBinding.msg = string.format("%s: %s", originalMsg, description)
-        else
-            newBinding.msg = description
-        end
+        newBinding.msg = buildMessage(modifiers, key, description)
 
         local enabled = newBinding:enable()
         if not enabled then
@@ -143,6 +247,13 @@ function M.bind(modifiersOrSpec, keyOrOptions, maybeOptions)
         if not ok then
             log.w(string.format("on_bind callback failed for hotkey '%s': %s", tostring(key), tostring(err)))
         end
+    end
+
+    if binding then
+        local modulePrefix = options.module and string.format("[%s] ", tostring(options.module)) or ""
+        local base = buildMessage(modifiers, key, nil)
+        local descriptionPart = hasDescription and string.format(" : %s", description) or ""
+        log.i(string.format("%sBound hotkey %s%s", modulePrefix, base, descriptionPart))
     end
 
     return binding

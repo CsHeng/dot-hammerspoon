@@ -2,120 +2,148 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Hammerspoon Configuration
+## Project Overview
 
-This is a modular Hammerspoon configuration repository for macOS automation. Hammerspoon is a desktop automation tool for macOS that allows extensive customization through Lua scripting.
+This is a modular Hammerspoon configuration for macOS automation that provides window management, application launching, media controls, and system automation through keyboard shortcuts. The codebase follows a clean architectural pattern with dependency injection, lazy loading, and centralized configuration management.
 
-## Development Commands
+## Key Commands
 
 ### Configuration Management
-```bash
-# Reload Hammerspoon configuration
-# Use hotkey: ⌃⌘⌥R
+- **Reload configuration**: `⌃⌘⌥R` (Ctrl+Cmd+Alt+R) - Reloads the entire Hammerspoon config
+- **Open console**: `⌃⌘⌥H` (Ctrl+Cmd+Alt+H) - Opens the Hammerspoon console for debugging
+- **Check status**: Run `hs.debugHammerspoon.status()` in the console to see module loading status
 
-# Open Hammerspoon console for debugging
-# Use hotkey: ⌃⌘⌥H
+### Validation and Diagnostics
+- **Validate PlantUML diagrams**: `plantuml --check-syntax <diagram-path>`
+- **Test individual modules**: Use `hs.reload()` after making changes, then check console for module loading messages
+- **Debug module dependencies**: Check `require("core.init_system").getModuleStatus()` for dependency issues
 
-# Enable debug logging
-# In Hammerspoon console: require("core.logger").setLogLevel("debug")
+### File Editing and Development
+- Edit configuration files in `config/` directory to modify hotkeys and behavior
+- Add new modules in `modules/` directory and register them in `init.lua`
+- Utility functions go in `utils/` directory
+- Documentation should be updated in `docs/` with corresponding PlantUML diagrams in `docs/diagrams/`
 
-# Set log level to warning (default)
-# In Hammerspoon console: require("core.logger").setLogLevel("warning")
-```
+## Architecture Overview
 
-### Testing Changes
-- Test hotkey changes by reloading configuration (⌃⌘⌥R)
-- Use Hammerspoon console (⌃⌘⌥H) for live debugging
-- Check Console.app for Hammerspoon-specific messages
-- Verify module loading status in console
+### Core System (`core/`)
+- **`config_loader.lua`**: Centralized configuration management with validation and hot reloading. Uses a defaults system that gets overridden by files in `config/`.
+- **`init_system.lua`**: Module registration and dependency management. Handles initialization order and provides module status tracking.
+- **`logger.lua`**: Centralized logging system used by all modules.
 
-## Architecture
+### Module Loading Pattern
+The system uses a sophisticated dependency-based module loading approach:
 
-### Modular Loading System
+1. **Registration Phase**: Modules register themselves with the init system when first required
+2. **Dependency Resolution**: The init system resolves dependencies and loads in correct order
+3. **Initialization**: Each module's `init()` function is called with access to configuration via `config_loader.get()`
+4. **Lazy Loading**: Heavy modules (like window_expose) are loaded on-demand
 
-The configuration uses a sophisticated module dependency system defined in `core/init_system.lua`:
-
-```
-Module Loading Order:
-1. Core modules (no dependencies)
-   - utils.app_utils
-   - utils.display_utils
-   - utils.notification_utils
-   - utils.window_utils
-
-2. Feature modules (depend on utils)
-   - modules.window_management
-   - modules.app_launcher
-   - modules.media_controls
-   - modules.mouse_management
-   - modules.wifi_automation
-   - modules.keystroke_visualizer
-
-3. Lazy-loaded modules
-   - modules.window_expose (loaded on first use)
-```
-
-### Key Architectural Patterns
-
-**Configuration System**: All settings centralized in `config/` directory with hot reloading. The `core/config_loader.lua` provides dot-notation access to nested configuration values.
-
-**Module Registration**: Modules declare dependencies and are loaded in correct order by `core/init_system.lua`. Each module follows the pattern `local M = {}` and returns `M`.
-
-**Logging System**: Centralized logging through `core/logger.lua` with levels: debug, info, warning, error. Default level is "warning" for quiet operation.
-
-**Event-Driven Architecture**: Heavy use of Hammerspoon's `hs.hotkey.bind()` for keyboard shortcuts and event taps for mouse/scroll events.
-
-### Critical Integration Points
-
-**Window Management**: Cross-display movement logic spans `modules/window_management.lua`, `utils/window_utils.lua`, and `utils/display_utils.lua`. Edge detection prevents display cycling while enabling smart cross-monitor positioning.
-
-**Application Management**: `modules/app_launcher.lua` uses `utils/app_utils.lua` for reliable app detection and launching via bundle IDs rather than app names.
-
-**Configuration Loading**: `init.lua` loads core modules first, then feature modules in dependency order. Hotkey bindings are centralized in `config/hotkeys.lua`.
-
-**WiFi Automation**: `modules/wifi_automation.lua` integrates with macOS location services for reliable network detection and automatic audio muting on work networks.
-
-### Key Modifier Patterns
-
-- **Window Management**: `ctrl+alt` (hyper modifier) for positioning
-- **App Launcher**: `cmd+alt` modifier for app switching
-- **Media Control**: `ctrl+cmd+alt` modifier for media controls
-- **System Control**: `ctrl+cmd+alt` modifier for system functions
-
-## Module Development Guidelines
-
-### Adding New Modules
-
-1. Create module file in `modules/` or `utils/` following existing patterns
-2. Add configuration options in appropriate `config/` file
-3. Declare dependencies in `core/init_system.lua` module_dependencies table
-4. Use logger: `local log = require("core.logger").getLogger("module_name")`
-5. Follow module pattern: `local M = {}; function M.init(); return M`
-
-### Configuration Access
-
-```lua
--- Access configuration values with fallback
-local config = require("core.config_loader")
-local enabled = config.get("section.setting", default_value)
-
--- Set configuration values
-config.set("section.setting", new_value)
-```
+### Configuration System
+- **Centralized defaults**: Located in `core/config_loader.lua` with comprehensive default settings
+- **User overrides**: Files in `config/` directory override defaults (hotkeys.lua, applications.lua, etc.)
+- **Path-based access**: Use `config.get("hotkeys.system.reload", {"ctrl", "cmd", "alt", "R"})` to access nested config
+- **Validation**: Automatic configuration validation on startup with detailed error reporting
 
 ### Hotkey Management
+- **Standardized binding**: All hotkeys use `utils/hotkey_utils.lua` for consistent behavior
+- **Announcement system**: Configurable toast notifications for hotkey triggers
+- **Module-specific preferences**: Each module can control whether hotkeys show announcements via `hotkeys.announcements.modules`
 
-All hotkeys are defined in configuration files and bound through the module system. Use consistent modifier patterns and avoid conflicts with system hotkeys.
+## Module Structure Patterns
 
-### Error Handling
+### Feature Module Template
+```lua
+local logger = require("core.logger")
+local config = require("core.config_loader")
+local hotkey_utils = require("utils.hotkey_utils")
 
-- Use pcall() for operations that might fail
-- Log errors with context: `log:e("Operation failed: " .. tostring(error))`
-- Graceful degradation when optional dependencies fail
+local log = logger.getLogger("module_name")
+local M = {}
 
-## Performance Considerations
+-- Module initialization function
+function M.init()
+    log:i("Initializing module_name")
 
-- **Lazy Loading**: Heavy modules (window_expose) load only when first used
-- **Event Filtering**: Filter unnecessary events to minimize processing
-- **Memory Management**: Periodic cleanup of cached data (window frames, etc.)
-- **Resource Cleanup**: Proper cleanup of event taps and timers in module cleanup functions
+    -- Get configuration
+    local hotkey_config = config.get("hotkeys.module.section", {})
+
+    -- Bind hotkeys using hotkey_utils
+    hotkey_utils.bind(hotkey_config.some_action, {
+        pressed = function()
+            -- Module functionality
+        end,
+        description = "Action description",
+        module = "module_name"
+    })
+end
+
+return M
+```
+
+### Utility Module Pattern
+Utility modules in `utils/` provide reusable functionality and have no dependencies. They expose functions through a module table and should include comprehensive logging.
+
+## Key Design Principles
+
+### Modularity and Dependencies
+- **Clear separation**: Feature modules depend on utils, never on each other
+- **Dependency injection**: Configuration is injected via `config_loader`, not hard-coded
+- **Lazy loading**: Performance-critical modules load only when needed
+- **Fail-fast**: Modules validate their configuration and fail early with clear error messages
+
+### Configuration Philosophy
+- **Single source of truth**: All configurable behavior lives in the config system
+- **Hierarchical overrides**: Defaults → config files → runtime changes
+- **Validation**: All configuration is validated on startup with helpful error messages
+- **Hot reloading**: Configuration changes can be applied without restarting Hammerspoon
+
+### Observability
+- **Comprehensive logging**: Every important action is logged with appropriate levels
+- **Module status tracking**: Use `init_system.getModuleStatus()` to see what's loaded
+- **Debug helpers**: `hs.debugHammerspoon` provides useful debugging functions
+
+## Working with This Codebase
+
+### Adding New Modules
+1. Create the module file in appropriate directory (`modules/` or `utils/`)
+2. Follow the module template patterns shown above
+3. Add the module to the loading list in `init.lua`
+4. Add default configuration in `core/config_loader.lua`
+5. Add user-facing configuration in appropriate `config/` file
+6. Test by reloading and checking console output
+
+### Modifying Configuration
+- **Hotkeys**: Edit `config/hotkeys.lua` for user preferences
+- **Applications**: Edit `config/applications.lua` for app-specific settings
+- **Defaults**: Modify `core/config_loader.lua` for system-wide defaults
+- **Validation**: Configuration is automatically validated on reload
+
+### Debugging Common Issues
+- **Module not loading**: Check `init_system.getModuleStatus()` for dependency issues
+- **Hotkey conflicts**: Look for hotkey binding failures in console output
+- **Configuration errors**: Check validation output on startup for malformed config
+- **Dependencies**: Ensure utils are loaded before feature modules that need them
+
+### Documentation Maintenance
+- Update relevant module documentation in `docs/modules/`
+- Add or update PlantUML diagrams in `docs/diagrams/`
+- Keep SystemArchitecture.md in sync with any major architectural changes
+- Validate PlantUML syntax before committing: `plantuml --check-syntax`
+
+## Important File Locations
+
+- **Main entry point**: `init.lua` - Sets up lazy loading and module system
+- **Core services**: `core/` - Configuration, logging, and module management
+- **Feature modules**: `modules/` - User-facing functionality
+- **Shared utilities**: `utils/` - Reusable helper functions
+- **User configuration**: `config/` - Override files for customization
+- **Documentation**: `docs/` - Architecture docs and PlantUML diagrams
+
+## Testing and Validation
+
+The codebase doesn't use automated tests but relies on:
+- **Configuration validation**: Automatic validation of all configuration on startup
+- **Module loading verification**: Clear logging of successful/failed module initialization
+- **Hotkey binding verification**: Logging of all hotkey bindings with status
+- **Manual testing**: Use the debug console and hotkey triggers to verify functionality

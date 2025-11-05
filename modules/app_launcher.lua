@@ -9,6 +9,7 @@ local notification_utils = require("utils.notification_utils")
 local hotkey_utils = require("utils.hotkey_utils")
 
 local log = logger.getLogger("app_launcher")
+local MODULE_NAME = "app_launcher"
 
 local M = {}
 
@@ -50,6 +51,7 @@ function M.setupAppHotkeys()
             local hotkey_desc = entry.hotkey_desc or string.format("Launch/Toggle %s", entry.appname)
             local modifiers = entry.modifier or launcher_modifier
             hotkey_utils.bind(modifiers, entry.key, {
+                module = MODULE_NAME,
                 description = hotkey_desc,
                 pressed = function()
                     M.launchOrToggleApp(entry.appname, entry.bundleid)
@@ -72,6 +74,7 @@ function M.setupRestartHotkeys()
         if entry.key and entry.appname then
             local hotkey_desc = string.format("Restart %s", entry.appname)
             hotkey_utils.bind(entry.modifier, entry.key, {
+                module = MODULE_NAME,
                 description = hotkey_desc,
                 pressed = function()
                     M.restartApp(entry.appname, entry.bundleid)
@@ -102,6 +105,7 @@ function M.setupProtectionHotkeys()
     }
 
     hotkey_utils.bind(cmdq_mods, cmdq_key, {
+        module = MODULE_NAME,
         description = "Cmd+Q Protection",
         pressed = function()
             if cmdq_state.pressed then

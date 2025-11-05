@@ -62,7 +62,7 @@ config.wifi = {
                 mute_builtin = false,
                 set_output_device = "Built-in"
             },
-            status = "home"
+            status = "work"
         },
 
         default = {

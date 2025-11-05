@@ -6,7 +6,8 @@ local config = {}
 -- Launcher applications with their key bindings
 config.applications = {
     launcher_apps = {
-        {modifier = {"cmd", "alt"}, key = 'C', appname = 'Cursor', bundleid = 'com.todesktop.230313mzl4w4u92'},
+        -- {modifier = {"cmd", "alt"}, key = 'C', appname = 'Cursor', bundleid = 'com.todesktop.230313mzl4w4u92'},
+        {modifier = {"cmd", "alt"}, key = 'C', appname = 'Visual Studio Code', bundleid = 'com.microsoft.VSCode'},
         {modifier = {"cmd", "alt"}, key = 'Q', appname = 'QQ', bundleid = 'com.tencent.qq'},
         {modifier = {"cmd", "alt"}, key = 'W', appname = 'WeChat', bundleid = 'com.tencent.xinWeChat'},
         {modifier = {"cmd", "alt"}, key = 'D', appname = 'DingTalk', bundleid = 'com.alibaba.DingTalk'},
@@ -53,11 +54,11 @@ config.expose_app_filter = {
         'WezTerm',
         'Finder',
         'Google Chrome',
-        'Cursor',
+        'Visual Studio Code',
         'WeChat',
         'QQ',
         'DingTalk',
-        'Ghostty'
+        'WezTerm'
     },
 
     -- Browser-specific expose
@@ -72,7 +73,6 @@ config.startup = {
     -- Applications to launch on startup (disabled by default)
     auto_launch = false,
     apps = {
-        -- {bundleid = 'com.todesktop.230313mzl4w4u92', delay = 2}, -- Cursor
         -- {bundleid = 'com.google.Chrome', delay = 3}, -- Chrome
     }
 }

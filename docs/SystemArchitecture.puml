@@ -1,0 +1,35 @@
+@startuml SystemArchitecture
+title System Architecture Overview
+
+package "Bootstrap" {
+  [init.lua]
+}
+
+package "Core" {
+  [core/config_loader.lua]
+  [core/init_system.lua]
+  [core/logger.lua]
+}
+
+package "Utilities" {
+  [utils/*]
+}
+
+package "Modules" {
+  [modules/*]
+}
+
+package "Docs & Diagrams" {
+  [docs/*.md]
+  [docs/modules/*]
+  [docs/modules/diagrams/*]
+}
+
+[init.lua] --> [core/config_loader.lua] : load defaults & overrides
+[init.lua] --> [core/init_system.lua] : register modules
+[core/init_system.lua] --> [modules/*] : init lifecycle
+[modules/*] --> [utils/*] : shared helpers
+[docs/*.md] ..> [core/*] : describes
+[docs/modules/*] ..> [modules/*] : summarizes
+
+@enduml

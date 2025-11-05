@@ -7,6 +7,7 @@ local app_utils = require("utils.app_utils")
 local hotkey_utils = require("utils.hotkey_utils")
 
 local log = logger.getLogger("mouse_management")
+local MODULE_NAME = "mouse_management"
 
 local M = {}
 
@@ -21,6 +22,16 @@ end
 
 local function getAppConfig(path)
     return config.get("applications." .. path)
+end
+
+local function describeModifiers(mods)
+    if type(mods) ~= "table" then
+        return tostring(mods)
+    end
+    if #mods == 0 then
+        return ""
+    end
+    return table.concat(mods, "+")
 end
 
 -- Initialize mouse management
@@ -71,6 +82,12 @@ function M.setupMouseButtons()
     log.i("Setting up mouse button bindings")
 
     local mouse_modifier = getHotkeyConfig("mouse.modifier") or {"fn", "ctrl"}
+    local modifier_label = describeModifiers(mouse_modifier)
+    local shortcut_prefix = modifier_label ~= "" and (modifier_label .. "+") or ""
+
+    log.i(string.format("Mouse button 2 -> %sup (Mission Control)", shortcut_prefix))
+    log.i(string.format("Mouse button 3 -> %sright (Application Windows)", shortcut_prefix))
+    log.i(string.format("Mouse button 4 -> %sleft (Custom Navigation)", shortcut_prefix))
 
     mouse_button_tap = hs.eventtap.new({
         hs.eventtap.event.types.otherMouseDown,
@@ -106,6 +123,7 @@ end
 function M.setupMouseHotkeys()
     -- Mouse speed adjustment
     hotkey_utils.bind({"ctrl", "cmd", "alt"}, "=", {
+        module = MODULE_NAME,
         description = "Mouse Speed Up",
         pressed = function()
             M.adjustMouseSpeed(0.1)
@@ -113,6 +131,7 @@ function M.setupMouseHotkeys()
     })
 
     hotkey_utils.bind({"ctrl", "cmd", "alt"}, "-", {
+        module = MODULE_NAME,
         description = "Mouse Speed Down",
         pressed = function()
             M.adjustMouseSpeed(-0.1)
@@ -121,21 +140,15 @@ function M.setupMouseHotkeys()
 
     -- Mouse acceleration toggle
     hotkey_utils.bind({"ctrl", "cmd", "alt"}, "\\", {
+        module = MODULE_NAME,
         description = "Toggle Mouse Acceleration",
         pressed = function()
             M.toggleMouseAcceleration()
         end
     })
 
-    -- Center mouse on focused window
-    hotkey_utils.bind({"ctrl", "cmd", "alt"}, "m", {
-        description = "Center Mouse on Window",
-        pressed = function()
-            M.centerMouseOnWindow()
-        end
-    })
-
     log.i("Setup mouse utility hotkeys")
+    log.d("Center mouse function available via mouse_management.centerMouseOnWindow()")
 end
 
 -- Setup paste defeat (bypass paste blocking)
@@ -149,6 +162,7 @@ function M.setupPasteDefeat()
     end
 
     hotkey_utils.bind(paste_mods, paste_key, {
+        module = MODULE_NAME,
         description = "Paste Defeat",
         pressed = function()
             local clipboard_content = hs.pasteboard.getContents()
@@ -195,13 +209,13 @@ function M.centerMouseOnWindow()
     local center_x = frame.x + frame.w / 2
     local center_y = frame.y + frame.h / 2
 
-    hs.mouse.setAbsolutePosition({x = center_x, y = center_y})
+    hs.mouse.absolutePosition({x = center_x, y = center_y})
     log.i(string.format("Centered mouse on window at (%.0f, %.0f)", center_x, center_y))
 end
 
 -- Get current mouse position and screen
 function M.getMouseInfo()
-    local position = hs.mouse.getAbsolutePosition()
+    local position = hs.mouse.absolutePosition()
     local screen = hs.mouse.getCurrentScreen()
 
     return {
@@ -215,12 +229,12 @@ end
 -- Move mouse to specific position
 function M.moveMouse(x, y, relative)
     if relative then
-        local current = hs.mouse.getAbsolutePosition()
+        local current = hs.mouse.absolutePosition()
         x = current.x + x
         y = current.y + y
     end
 
-    hs.mouse.setAbsolutePosition({x = x, y = y})
+    hs.mouse.absolutePosition({x = x, y = y})
     log.i(string.format("Moved mouse to (%.0f, %.0f)", x, y))
 end
 

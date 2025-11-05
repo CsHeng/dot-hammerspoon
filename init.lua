@@ -153,10 +153,6 @@ if baseMods and exposeKey then
     end
 
     bindLazy(baseMods, 1)
-
-    local withShift = cloneHotkey(baseMods)
-    table.insert(withShift, "shift")
-    bindLazy(withShift, -1)
 end
 
 -- Debug function

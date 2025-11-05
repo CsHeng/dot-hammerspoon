@@ -68,6 +68,13 @@ config.hotkeys = {
     }
 }
 
+config.hotkeys_announcements = {
+    default = false,
+    modules = {
+        app_launcher = true
+    }
+}
+
 -- Hotkey descriptions for logging
 config.hotkey_descriptions = {
     ["system.reload"] = "Reload Hammerspoon configuration",

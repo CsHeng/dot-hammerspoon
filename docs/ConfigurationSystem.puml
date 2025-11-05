@@ -1,0 +1,23 @@
+@startuml ConfigurationSystem
+title Configuration System Data Flow
+
+rectangle "Defaults" as Defaults
+rectangle "config/*.lua overrides" as Overrides
+component "core/config_loader.lua" as Loader
+database "Merged Config" as ConfigStore
+queue "Modules" as Modules
+
+Defaults --> Loader : seed
+Overrides --> Loader : merge
+Loader --> ConfigStore : store cloned table
+Modules --> Loader : get(path)
+Modules --> Loader : set(path, value)
+Loader --> Modules : validate + warnings
+
+note right of Loader
+  - mergeTables()
+  - cloneTable()
+  - validate()
+end note
+
+@enduml
