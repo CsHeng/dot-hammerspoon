@@ -51,20 +51,20 @@ end
 function M.setupHalfScreenHotkeys()
     local hyper = getHotkey("window.hyper") or {"ctrl", "alt"}
 
-    -- Basic half positions
-    hs.hotkey.bind(hyper, "left", "Move Left Half", function()
+    -- Basic half positions without announcement overlay for responsiveness
+    hs.hotkey.bind(hyper, "left", function()
         M.moveWindowHalf("left")
     end)
 
-    hs.hotkey.bind(hyper, "right", "Move Right Half", function()
+    hs.hotkey.bind(hyper, "right", function()
         M.moveWindowHalf("right")
     end)
 
-    hs.hotkey.bind(hyper, "up", "Move Top Half", function()
+    hs.hotkey.bind(hyper, "up", function()
         M.moveWindowHalf("top")
     end)
 
-    hs.hotkey.bind(hyper, "down", "Move Bottom Half", function()
+    hs.hotkey.bind(hyper, "down", function()
         M.moveWindowHalf("bottom")
     end)
 end
@@ -74,19 +74,19 @@ function M.setupQuarterScreenHotkeys()
     local hyper_shift = getHotkey("window.hyper_shift") or {"ctrl", "alt", "shift"}
 
     -- Quarter positions with contextual movement
-    hs.hotkey.bind(hyper_shift, "left", "Move Left Quarter", function()
+    hs.hotkey.bind(hyper_shift, "left", function()
         M.moveWindowQuarter("left")
     end)
 
-    hs.hotkey.bind(hyper_shift, "right", "Move Right Quarter", function()
+    hs.hotkey.bind(hyper_shift, "right", function()
         M.moveWindowQuarter("right")
     end)
 
-    hs.hotkey.bind(hyper_shift, "up", "Move Top Quarter", function()
+    hs.hotkey.bind(hyper_shift, "up", function()
         M.moveWindowQuarter("up")
     end)
 
-    hs.hotkey.bind(hyper_shift, "down", "Move Bottom Quarter", function()
+    hs.hotkey.bind(hyper_shift, "down", function()
         M.moveWindowQuarter("down")
     end)
 end
@@ -96,15 +96,15 @@ function M.setupSpecialPositioningHotkeys()
     local hyper = getHotkey("window.hyper") or {"ctrl", "alt"}
 
     -- Maximize, center, original
-    hs.hotkey.bind(hyper, "return", "Maximize Window", function()
+    hs.hotkey.bind(hyper, "return", function()
         M.maximizeWindow()
     end)
 
-    hs.hotkey.bind(hyper, "c", "Center Window", function()
+    hs.hotkey.bind(hyper, "c", function()
         M.centerWindow()
     end)
 
-    hs.hotkey.bind(hyper, "o", "Restore Original", function()
+    hs.hotkey.bind(hyper, "o", function()
         M.restoreOriginalWindow()
     end)
 end

@@ -53,6 +53,7 @@ function M.setupAppHotkeys()
             hotkey_utils.bind(modifiers, entry.key, {
                 module = MODULE_NAME,
                 description = hotkey_desc,
+                announce = false,
                 pressed = function()
                     M.launchOrToggleApp(entry.appname, entry.bundleid)
                 end
@@ -76,6 +77,7 @@ function M.setupRestartHotkeys()
             hotkey_utils.bind(entry.modifier, entry.key, {
                 module = MODULE_NAME,
                 description = hotkey_desc,
+                announce = false,
                 pressed = function()
                     M.restartApp(entry.appname, entry.bundleid)
                 end
@@ -107,6 +109,7 @@ function M.setupProtectionHotkeys()
     hotkey_utils.bind(cmdq_mods, cmdq_key, {
         module = MODULE_NAME,
         description = "Cmd+Q Protection",
+        announce = false,
         pressed = function()
             if cmdq_state.pressed then
                 -- Second press: Quit the frontmost app
@@ -127,7 +130,11 @@ function M.setupProtectionHotkeys()
                     cmdq_state.pressed = false
                     cmdq_state.timer = nil
                 end)
-                notification_utils.sendAlert("Press Cmd+Q again to quit", protection_delay)
+                notification_utils.announce(MODULE_NAME, "cmdq_protection_prompt", {
+                    message = "Press Cmd+Q again to quit",
+                    duration = protection_delay,
+                    override = true
+                })
             end
         end
     })
@@ -145,7 +152,11 @@ function M.launchOrToggleApp(app_name, bundle_id)
         log.w(string.format("Failed to toggle app: %s", app_name))
     elseif not result.running then
         -- Only show alert when actually launching a new process
-        notification_utils.sendAlert(string.format("Launched: %s", app_name), 1.0)
+        notification_utils.announce(MODULE_NAME, "launch", {
+            message = string.format("Launched: %s", app_name),
+            duration = 1.0,
+            override = true
+        })
     end
 end
 

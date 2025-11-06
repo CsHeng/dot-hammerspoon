@@ -56,18 +56,48 @@ function M.setupToggleHotkeys()
 
     hotkey_utils.bind(toggle_key, {
         module = MODULE_NAME,
+        id = "toggle",
         description = "Toggle Keystroke Visualizer",
-        pressed = M.toggleKeystrokes
+        pressed = M.toggleKeystrokes,
+        announce = {
+            id = "toggle",
+            enabled = true,
+            duration = 1.5,
+            message_fn = function()
+                local enabled = getKeyCastrConfig("enabled")
+                return "KeyCastr: " .. (enabled and "Enabled" or "Disabled")
+            end
+        }
     })
     hotkey_utils.bind(circle_key, {
         module = MODULE_NAME,
+        id = "click_circle",
         description = "Toggle Click Circle",
-        pressed = M.toggleClickCircle
+        pressed = M.toggleClickCircle,
+        announce = {
+            id = "click_circle",
+            enabled = true,
+            duration = 1.5,
+            message_fn = function()
+                local show_circle = getKeyCastrConfig("show_click_circle")
+                return "Click Circle: " .. (show_circle and "Enabled" or "Disabled")
+            end
+        }
     })
     hotkey_utils.bind(continuous_key, {
         module = MODULE_NAME,
+        id = "continuous",
         description = "Toggle Continuous Input",
-        pressed = M.toggleContinuousInput
+        pressed = M.toggleContinuousInput,
+        announce = {
+            id = "continuous",
+            enabled = true,
+            duration = 1.5,
+            message_fn = function()
+                local enabled = getKeyCastrConfig("continuous_input.enabled")
+                return "Continuous Input: " .. (enabled and "Enabled" or "Disabled")
+            end
+        }
     })
 
     log.i("Setup keystroke visualizer hotkeys")
@@ -82,7 +112,6 @@ function M.toggleKeystrokes()
         M.clearAllDrawings()
     end
 
-    hs.alert.show("KeyCastr: " .. (enabled and "Enabled" or "Disabled"))
     log.i(string.format("Toggled keystroke visualization: %s", tostring(enabled)))
 end
 
@@ -91,7 +120,6 @@ function M.toggleClickCircle()
     local show_circle = not getKeyCastrConfig("show_click_circle")
     config.set("keycastr.show_click_circle", show_circle)
 
-    hs.alert.show("Click Circle: " .. (show_circle and "Enabled" or "Disabled"))
     log.i(string.format("Toggled click circle: %s", tostring(show_circle)))
 end
 
@@ -101,7 +129,6 @@ function M.toggleContinuousInput()
     config.set("keycastr.continuous_input.enabled", enabled)
 
     continuous_text = ""
-    hs.alert.show("Continuous Input: " .. (enabled and "Enabled" or "Disabled"))
     log.i(string.format("Toggled continuous input: %s", tostring(enabled)))
 end
 
@@ -251,10 +278,20 @@ function M.formatKeystroke(event)
             key_text = key:upper()
         else
             mod_text = mod_text .. (modifier_symbols.shift or "⇧")
-            key_text = special_keys[key] or key
+            local raw = special_keys[key] or key
+            if raw == key and type(raw) == "string" then
+                key_text = string.upper(raw)
+            else
+                key_text = raw
+            end
         end
     else
-        key_text = special_keys[key] or key
+        local raw = special_keys[key] or key
+        if raw == key and type(raw) == "string" then
+            key_text = string.upper(raw)
+        else
+            key_text = raw
+        end
     end
 
     if mod_text ~= "" then

@@ -2,9 +2,11 @@
 -- Creates a black window covering the notch area (like Boring Notch)
 
 local config = require("core.config_loader")
+local notification_utils = require("utils.notification_utils")
 local log = require("core.logger").getLogger("notch_hider")
 
 local M = {}
+local MODULE_NAME = "notch_hider"
 
 -- Local state
 local notchWindow = nil
@@ -174,7 +176,11 @@ end
 function M.show()
   if isActive then
     log:w("Notch hider is already active")
-    hs.alert.show("Notch hider already active", {atScreen = 0})
+    notification_utils.announce(MODULE_NAME, "already_active", {
+      message = "Notch hider already active",
+      duration = 1.2,
+      override = true
+    })
     return
   end
 
@@ -212,7 +218,11 @@ function M.show()
   end
   if not notchScreen then
     log:e("No display found")
-    hs.alert.show("No display found", {atScreen = 0})
+    notification_utils.announce(MODULE_NAME, "no_display", {
+      message = "No display found",
+      duration = 1.5,
+      override = true
+    })
     return false
   end
 
@@ -220,11 +230,19 @@ function M.show()
     isActive = true
     warnedNoNotch = false
     log:i("Notch hider activated")
-    hs.alert.show("Notch hider enabled", {atScreen = 0}, 2.0)
+    notification_utils.announce(MODULE_NAME, "enabled", {
+      message = "Notch hider enabled",
+      duration = 2.0,
+      override = true
+    })
     return true
   else
     log:e("Failed to create notch cover")
-    hs.alert.show("Failed to enable notch hider", {atScreen = 0})
+    notification_utils.announce(MODULE_NAME, "enable_failed", {
+      message = "Failed to enable notch hider",
+      duration = 1.5,
+      override = true
+    })
     return false
   end
 end
@@ -233,7 +251,11 @@ end
 function M.hide()
   if not isActive then
     log:w("Notch hider is not active")
-    hs.alert.show("Notch hider already disabled", {atScreen = 0})
+    notification_utils.announce(MODULE_NAME, "already_disabled", {
+      message = "Notch hider already disabled",
+      duration = 1.2,
+      override = true
+    })
     return
   end
 
@@ -241,7 +263,11 @@ function M.hide()
   isActive = false
   warnedNoNotch = false
   log:i("Notch hider deactivated")
-  hs.alert.show("Notch hider disabled", {atScreen = 0}, 2.0)
+  notification_utils.announce(MODULE_NAME, "disabled", {
+    message = "Notch hider disabled",
+    duration = 2.0,
+    override = true
+  })
 end
 
 -- Toggle notch hider

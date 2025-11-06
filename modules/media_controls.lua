@@ -51,6 +51,7 @@ function M.setupMediaHotkeys()
             hotkey_utils.bind(modifiers, entry.key, {
                 module = MODULE_NAME,
                 description = desc,
+                announce = false,
                 pressed = function()
                     M.sendMediaKeyEvent(entry.action)
                 end
@@ -71,6 +72,7 @@ function M.setupAudioControls()
     hotkey_utils.bind({"ctrl", "cmd", "alt"}, "m", {
         module = MODULE_NAME,
         description = "Audio: Toggle Mute",
+        announce = false,
         pressed = function()
             M.toggleMute()
         end
@@ -85,6 +87,7 @@ function M.setupSystemControls()
     hotkey_utils.bind({"ctrl", "cmd", "alt"}, "[", {
         module = MODULE_NAME,
         description = "Brightness Down",
+        announce = false,
         pressed = function()
             M.adjustBrightness(-0.05)
         end
@@ -93,6 +96,7 @@ function M.setupSystemControls()
     hotkey_utils.bind({"ctrl", "cmd", "alt"}, "]", {
         module = MODULE_NAME,
         description = "Brightness Up",
+        announce = false,
         pressed = function()
             M.adjustBrightness(0.05)
         end
@@ -102,6 +106,7 @@ function M.setupSystemControls()
     hotkey_utils.bind({"ctrl", "cmd", "alt"}, ";", {
         module = MODULE_NAME,
         description = "Keyboard Backlight Down",
+        announce = false,
         pressed = function()
             M.adjustKeyboardBacklight(-0.1)
         end
@@ -110,6 +115,7 @@ function M.setupSystemControls()
     hotkey_utils.bind({"ctrl", "cmd", "alt"}, "'", {
         module = MODULE_NAME,
         description = "Keyboard Backlight Up",
+        announce = false,
         pressed = function()
             M.adjustKeyboardBacklight(0.1)
         end
@@ -133,7 +139,13 @@ function M.sendMediaKeyEvent(action)
     end)
 
     if success then
-        notification_utils.sendAlert(string.format("Media: %s", action), 0.5)
+        local eventId = string.lower(tostring(action))
+        notification_utils.announce(MODULE_NAME, "media_" .. eventId, {
+            message = string.format("Media: %s", action),
+            duration = 0.5,
+            override = true,
+            metadata = {action = action}
+        })
     else
         log.e(string.format("Failed to send media key event: %s", err))
     end
@@ -158,7 +170,11 @@ function M.adjustVolume(delta)
 
     local volume_percent = math.floor(new_volume * 100)
     log.i(string.format("Volume set to %d%%", volume_percent))
-    notification_utils.sendAlert(string.format("Volume: %d%%", volume_percent), 0.5)
+    notification_utils.announce(MODULE_NAME, "volume", {
+        message = string.format("Volume: %d%%", volume_percent),
+        duration = 0.5,
+        override = true
+    })
 end
 
 -- Toggle mute
@@ -174,7 +190,11 @@ function M.toggleMute()
 
     local status = not current_mute and "Muted" or "Unmuted"
     log.i(string.format("Audio %s", status))
-    notification_utils.sendAlert(string.format("Audio: %s", status), 0.5)
+    notification_utils.announce(MODULE_NAME, "mute_toggle", {
+        message = string.format("Audio: %s", status),
+        duration = 0.5,
+        override = true
+    })
 end
 
 -- Get current audio devices information
@@ -255,10 +275,14 @@ function M.cycleOutputDevices()
     local next_index = current_index % #devices + 1
     local next_device = devices[next_index]
 
-    -- Set as default
     next_device:setDefaultOutputDevice()
-    log.i(string.format("Switched output device to: %s", next_device:name() or "Unknown"))
-    notification_utils.sendAlert(string.format("Audio: %s", next_device:name() or "Unknown"), 1.0)
+    local deviceName = next_device:name() or "Unknown"
+    log.i(string.format("Switched output device to: %s", deviceName))
+    notification_utils.announce(MODULE_NAME, "cycle_output", {
+        message = string.format("Audio: %s", deviceName),
+        duration = 1.0,
+        override = true
+    })
 
     return true
 end
@@ -276,7 +300,11 @@ function M.adjustBrightness(delta)
 
     local brightness_percent = math.floor(new_brightness * 100)
     log.i(string.format("Brightness set to %d%%", brightness_percent))
-    notification_utils.sendAlert(string.format("Brightness: %d%%", brightness_percent), 0.5)
+    notification_utils.announce(MODULE_NAME, "brightness", {
+        message = string.format("Brightness: %d%%", brightness_percent),
+        duration = 0.5,
+        override = true
+    })
 end
 
 -- Get current screen brightness
@@ -318,7 +346,11 @@ end
 function M.adjustKeyboardBacklight(delta)
     -- This requires additional tools or permissions on macOS
     log.w("Keyboard backlight adjustment not implemented")
-    notification_utils.sendAlert("Keyboard backlight not available", 1.0)
+    notification_utils.announce(MODULE_NAME, "keyboard_backlight_unavailable", {
+        message = "Keyboard backlight not available",
+        duration = 1.0,
+        override = true
+    })
 end
 
 -- Get media controls status

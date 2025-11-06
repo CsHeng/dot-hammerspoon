@@ -81,7 +81,8 @@ local defaults = {
 
     hotkeys_announcements = {
         default = false,
-        modules = {}
+        modules = {},
+        bindings = {}
     },
 
     wifi = {

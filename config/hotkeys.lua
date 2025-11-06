@@ -71,8 +71,9 @@ config.hotkeys = {
 config.hotkeys_announcements = {
     default = false,
     modules = {
-        app_launcher = true
-    }
+        app_launcher = {channel = "alert", duration = 1.0}
+    },
+    bindings = {}
 }
 
 -- Hotkey descriptions for logging

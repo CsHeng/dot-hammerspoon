@@ -179,26 +179,47 @@ end
 function M.setupMouseHotkeys()
     hotkey_utils.bind({"ctrl", "cmd", "alt"}, "=", {
         module = MODULE_NAME,
+        id = "speed_up",
         description = "Mouse Speed Up",
         pressed = function()
             M.adjustMouseSpeed(0.1)
-        end
+        end,
+        announce = {
+            id = "mouse_speed_unavailable",
+            enabled = true,
+            duration = 1.2,
+            message = "Mouse speed adjustment not available"
+        }
     })
 
     hotkey_utils.bind({"ctrl", "cmd", "alt"}, "-", {
         module = MODULE_NAME,
+        id = "speed_down",
         description = "Mouse Speed Down",
         pressed = function()
             M.adjustMouseSpeed(-0.1)
-        end
+        end,
+        announce = {
+            id = "mouse_speed_unavailable",
+            enabled = true,
+            duration = 1.2,
+            message = "Mouse speed adjustment not available"
+        }
     })
 
     hotkey_utils.bind({"ctrl", "cmd", "alt"}, "\\", {
         module = MODULE_NAME,
+        id = "toggle_acceleration",
         description = "Toggle Mouse Acceleration",
         pressed = function()
             M.toggleMouseAcceleration()
-        end
+        end,
+        announce = {
+            id = "mouse_accel_unavailable",
+            enabled = true,
+            duration = 1.2,
+            message = "Mouse acceleration toggle not available"
+        }
     })
 
     log.i("Mouse utility hotkeys registered")
@@ -244,12 +265,10 @@ end
 
 function M.adjustMouseSpeed(delta)
     log.w("Mouse speed adjustment not implemented")
-    hs.alert.show("Mouse speed adjustment not available")
 end
 
 function M.toggleMouseAcceleration()
     log.w("Mouse acceleration toggle not implemented")
-    hs.alert.show("Mouse acceleration toggle not available")
 end
 
 function M.centerMouseOnWindow()

@@ -10,6 +10,8 @@ hs.hotkey.bind({"ctrl", "cmd", "alt"}, "H", "Hammerspoon Console", function()
     hs.openConsole()
 end)
 
+local notification_utils = require("utils.notification_utils")
+
 -- Load new modular system
 local function loadModularSystem()
     local modules_loaded = 0
@@ -77,7 +79,11 @@ local modules_loaded_count = loadModularSystem()
 print("Hammerspoon loaded " .. modules_loaded_count .. " modules")
 
 -- Success notification
-hs.alert.show("Hammerspoon loaded")
+notification_utils.announce("system", "startup", {
+    message = "Hammerspoon loaded",
+    duration = 1.0,
+    override = true
+})
 
 -- Lazy load window switcher on first Alt+Tab usage
 local function cloneHotkey(list)
