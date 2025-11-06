@@ -4,6 +4,7 @@ title Mouse speed hotkey flow
 actor User as user
 participant "hs.hotkey" as hotkey
 participant "modules.mouse_management" as mouse
+participant "utils.notification_utils" as notification
 participant "hs.alert" as alert
 
 autonumber
@@ -11,12 +12,13 @@ autonumber
 user -> hotkey: press ctrl+cmd+alt+=
 hotkey -> mouse: adjustMouseSpeed(0.1)
 mouse -> mouse: log warning (not implemented)
-mouse -> alert: hs.alert.show("Mouse speed adjustment not available")
+mouse -> notification: announce("mouse_management.mouse_speed_unavailable", payload)
+notification -> alert: hs.alert.show(...) (default channel)
 alert --> user: informational toast
 
 note right of mouse
-Binding skips the description argument, so this helper alert is the sole
-user-visible notification even while the feature remains stubbed.
+`hotkey_utils.bind` disables the built-in overlay while the module routes its
+placeholder warning through `notification_utils.announce`.
 end note
 
 @enduml

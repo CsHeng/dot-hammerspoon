@@ -15,9 +15,9 @@ hotkey -> media: sendMediaKeyEvent("SOUND_UP")
 media -> eventtap: newSystemKeyEvent(action=true)
 eventtap --> media: key down posted
 media -> eventtap: newSystemKeyEvent(action=false) delayed
-media -> notification: sendAlert("Media: SOUND_UP", 0.5)
-notification -> alert: hs.alert.show(...)
-alert --> user: toast displayed once
+media -> notification: announce("media.volume", payload)
+notification -> alert: hs.alert.show(...) (default channel)
+alert --> user: toast displayed once (config-driven)
 
 note right of media
 `hotkey_utils.bind` stamps descriptions into the log while binding without the

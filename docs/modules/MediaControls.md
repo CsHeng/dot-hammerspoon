@@ -21,7 +21,7 @@
 
 ## Observability
 - Logs every media action and audio state change through `media_controls`.
-- Alerts summarise the result of volume, mute, and playback changes for quick confirmation.
+- Toasts are dispatched via `notification_utils.announce`, summarising volume, mute, and playback changes with per-binding identifiers.
 - Errors (missing audio device, unsupported brightness) are logged as warnings.
 
 ## Maintenance Notes

@@ -16,6 +16,8 @@ local drag_initial = nil
 local offset_position = {x = 0, y = 0}
 local continuous_text = ""
 local last_input_time = 0
+local event_queue = {}
+local queue_timer = nil
 
 -- Event taps
 local key_event_tap = nil
@@ -104,11 +106,51 @@ function M.setupToggleHotkeys()
 end
 
 -- Toggle keystroke visualization
+local function processEventQueue()
+    if #event_queue == 0 then
+        queue_timer = nil
+        return
+    end
+
+    local next_item = table.remove(event_queue, 1)
+    if type(next_item) == "function" then
+        local ok, err = pcall(next_item)
+        if not ok then
+            log.w(string.format("KeyCastr event processing failed: %s", tostring(err)))
+        end
+    end
+
+    if #event_queue > 0 then
+        queue_timer = hs.timer.doAfter(0, processEventQueue)
+    else
+        queue_timer = nil
+    end
+end
+
+local function enqueueEvent(fn)
+    if type(fn) ~= "function" then
+        return
+    end
+    table.insert(event_queue, fn)
+    if not queue_timer then
+        queue_timer = hs.timer.doAfter(0, processEventQueue)
+    end
+end
+
+local function resetEventQueue()
+    event_queue = {}
+    if queue_timer then
+        queue_timer:stop()
+        queue_timer = nil
+    end
+end
+
 function M.toggleKeystrokes()
     local enabled = not getKeyCastrConfig("enabled")
     config.set("keycastr.enabled", enabled)
 
     if not enabled then
+        resetEventQueue()
         M.clearAllDrawings()
     end
 
@@ -129,11 +171,15 @@ function M.toggleContinuousInput()
     config.set("keycastr.continuous_input.enabled", enabled)
 
     continuous_text = ""
+    if not enabled then
+        resetEventQueue()
+    end
     log.i(string.format("Toggled continuous input: %s", tostring(enabled)))
 end
 
 -- Clear all drawings
 function M.clearAllDrawings()
+    resetEventQueue()
     for _, item in ipairs(keystroke_drawings) do
         item.canvas:delete()
     end
@@ -329,7 +375,11 @@ function M.setupEventTracking()
 
         local text, is_modifier = M.formatKeystroke(event)
         if text then
-            M.drawEvent(text, "keyboard", is_modifier)
+            enqueueEvent(function()
+                if getKeyCastrConfig("enabled") then
+                    M.drawEvent(text, "keyboard", is_modifier)
+                end
+            end)
         end
 
         return false

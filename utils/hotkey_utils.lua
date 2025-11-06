@@ -348,12 +348,7 @@ function M.bind(modifiersOrSpec, keyOrOptions, maybeOptions)
     if useHsAlert then
         binding = hotkey.bind(modifiers, key, description, pressed, released, repeatFn)
     else
-        local hk = hotkey.new(modifiers, key, nil, pressed, released, repeatFn)
-        if not hk then
-            log.e(string.format("Failed to allocate hotkey '%s'", tostring(combo)))
-            return nil
-        end
-        binding = hk:enable()
+        binding = hotkey.bind(modifiers, key, pressed, released, repeatFn)
     end
 
     if type(options.on_bind) == "function" then

@@ -8,6 +8,7 @@
 - Render events using `hs.canvas`, respecting configurable font sizes, colours, margins, and fade durations.
 - Track mouse clicks and drag gestures when enabled, updating the overlay position or showing click indicators.
 - Maintain configurable history length, ensuring on-screen items expire gracefully.
+- Queue keystroke drawing work on a zero-delay timer so functional hotkeys remain responsive even while the overlay animates.
 
 ## Configuration
 - `config/keycastr.lua` defines enablement, visuals, behaviour flags, and click-circle parameters.
@@ -19,7 +20,7 @@
 - Related utilities: `utils/notification_utils.lua` for on/off alerts, `utils/display_utils.lua` for positioning helpers.
 
 ## Observability
-- Logs every toggle, event drawing, and cleanup action through the `keystroke_visualizer` logger.
+- Logs every toggle and draw operation through the `keystroke_visualizer` logger while the queue keeps work off the hotkey path.
 - Alerts when features are toggled to give immediate feedback without cluttering logs.
 - Debug helpers (`M.debug`) summarise enablement state and display metrics.
 

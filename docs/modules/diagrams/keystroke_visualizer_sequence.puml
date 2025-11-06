@@ -5,6 +5,7 @@ actor User as user
 participant "hs.hotkey" as hotkey
 participant "modules.keystroke_visualizer" as keyviz
 participant "core.config_loader" as config
+participant "utils.notification_utils" as notification
 participant "hs.alert" as alert
 
 autonumber
@@ -15,12 +16,13 @@ keyviz -> config: get("keycastr.enabled")
 config --> keyviz: current flag
 keyviz -> config: set("keycastr.enabled", new flag)
 keyviz -> keyviz: clearAllDrawings() when disabling
-keyviz -> alert: hs.alert.show("KeyCastr: Enabled/Disabled")
+keyviz -> notification: announce("keystroke_visualizer.toggle", payload)
+notification -> alert: hs.alert.show(...) (default channel)
 alert --> user: status toast (single)
 
 note right of keyviz
-`hotkey_utils.bind` writes the description into the logger without enabling the
-default overlay, leaving only the explicit hs.alert status toast.
+`hotkey_utils.bind` tags the binding for logging and toast policy, while the
+module queues draw operations on a zero-delay timer so functional hotkeys stay responsive.
 end note
 
 @enduml

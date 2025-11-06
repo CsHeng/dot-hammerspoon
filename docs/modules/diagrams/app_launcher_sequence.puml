@@ -14,9 +14,9 @@ autonumber
 user -> hotkey: press cmd+q (first time)
 hotkey -> launcher: protectedQuitHandler()
 launcher -> timer: start 0.5s watchdog
-launcher -> notification: sendAlert("Press Cmd+Q again to quit", 0.5)
-notification -> alert: hs.alert.show(...)
-alert --> user: reminder toast
+launcher -> notification: announce("app_launcher.cmdq_protection_prompt", payload)
+notification -> alert: hs.alert.show(...) (default channel)
+alert --> user: reminder toast (configurable)
 
 user -> hotkey: press cmd+q (second time)
 hotkey -> launcher: protectedQuitHandler()

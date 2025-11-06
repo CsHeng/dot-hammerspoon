@@ -21,8 +21,8 @@
 
 ## Observability
 - Logs every launch/toggle attempt, restart, and Cmd+Q protection event through the `app_launcher` logger.
-- Launch hotkeys raise a toast only when a new process is started, keeping toggles silent during regular switching.
-- Cmd+Q protection reminder uses `notification_utils.sendAlert`, ensuring visibility without cluttering the console.
+- Launch hotkeys raise an `notification_utils.announce` toast only when a new process starts, keeping regular toggles silent.
+- Cmd+Q protection reminder uses `notification_utils.announce` with a dedicated binding id so the prompt can be configured independently of other module toasts.
 
 ## Maintenance Notes
 - Add new launcher targets to `config/applications.lua` rather than modifying module logic.

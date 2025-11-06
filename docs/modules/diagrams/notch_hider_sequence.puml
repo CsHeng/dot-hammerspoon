@@ -7,6 +7,7 @@ participant "modules.notch_hider" as notch
 participant "core.config_loader" as config
 participant "hs.screen" as screen
 participant "hs.canvas" as canvas
+participant "utils.notification_utils" as notification
 participant "hs.alert" as alert
 
 autonumber
@@ -21,10 +22,12 @@ alt Matching screen located
     notch -> canvas: new(windowRect)
     canvas --> notch: overlay handle
     notch -> canvas: show()
-    notch -> alert: hs.alert.show("Notch hider enabled")
+    notch -> notification: announce("notch_hider.enabled", payload)
+    notification -> alert: hs.alert.show(...) (default channel)
     alert --> user: confirmation toast
 else No display available
-    notch -> alert: hs.alert.show("No display found")
+    notch -> notification: announce("notch_hider.no_display", payload)
+    notification -> alert: hs.alert.show(...) (default channel)
     alert --> user: warning
 end
 

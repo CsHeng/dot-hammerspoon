@@ -21,7 +21,7 @@
 - Configuration source: `config/hotkeys.lua`.
 
 ## Observability
-- Binding outcomes emit `hotkey_utils` info logs in the form `[module] ⌃⌥X -> Action Label`.
+- Binding outcomes emit console lines in the form `[hotkeys] [module] ⌃⌥X -> Action Label`, keeping registration transparent even without toasts.
 - Modules can pass `options.on_bind` for additional instrumentation or to retain the binding reference.
 - Default behaviour suppresses Hammerspoon toast overlays unless `options.toast` (or configuration) explicitly enables them.
 
