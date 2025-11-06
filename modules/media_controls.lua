@@ -48,16 +48,18 @@ function M.setupMediaHotkeys()
         if entry.key and entry.action then
             local desc = entry.description or string.format("Media: %s", entry.action)
             local modifiers = entry.modifier or getHotkeyConfig("media.modifier") or {"ctrl", "cmd", "alt"}
+            local action_id = string.lower(tostring(entry.action or "action"))
+            action_id = action_id:gsub("[^%w]+", "_")
+
             hotkey_utils.bind(modifiers, entry.key, {
                 module = MODULE_NAME,
+                id = string.format("media_%s", action_id),
                 description = desc,
-                announce = false,
+                toast = false,
                 pressed = function()
                     M.sendMediaKeyEvent(entry.action)
                 end
             })
-            log.d(string.format("Registered media hotkey: %s+%s -> %s",
-                table.concat(modifiers, "+"), entry.key, entry.action))
         end
     end)
 end
@@ -71,8 +73,9 @@ function M.setupAudioControls()
     -- Mute toggle
     hotkey_utils.bind({"ctrl", "cmd", "alt"}, "m", {
         module = MODULE_NAME,
+        id = "audio_toggle_mute",
         description = "Audio: Toggle Mute",
-        announce = false,
+        toast = false,
         pressed = function()
             M.toggleMute()
         end
@@ -86,8 +89,9 @@ function M.setupSystemControls()
     -- Brightness controls (if supported)
     hotkey_utils.bind({"ctrl", "cmd", "alt"}, "[", {
         module = MODULE_NAME,
+        id = "brightness_down",
         description = "Brightness Down",
-        announce = false,
+        toast = false,
         pressed = function()
             M.adjustBrightness(-0.05)
         end
@@ -95,8 +99,9 @@ function M.setupSystemControls()
 
     hotkey_utils.bind({"ctrl", "cmd", "alt"}, "]", {
         module = MODULE_NAME,
+        id = "brightness_up",
         description = "Brightness Up",
-        announce = false,
+        toast = false,
         pressed = function()
             M.adjustBrightness(0.05)
         end
@@ -105,8 +110,9 @@ function M.setupSystemControls()
     -- Keyboard backlight (if supported)
     hotkey_utils.bind({"ctrl", "cmd", "alt"}, ";", {
         module = MODULE_NAME,
+        id = "keyboard_backlight_down",
         description = "Keyboard Backlight Down",
-        announce = false,
+        toast = false,
         pressed = function()
             M.adjustKeyboardBacklight(-0.1)
         end
@@ -114,8 +120,9 @@ function M.setupSystemControls()
 
     hotkey_utils.bind({"ctrl", "cmd", "alt"}, "'", {
         module = MODULE_NAME,
+        id = "keyboard_backlight_up",
         description = "Keyboard Backlight Up",
-        announce = false,
+        toast = false,
         pressed = function()
             M.adjustKeyboardBacklight(0.1)
         end

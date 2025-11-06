@@ -1,14 +1,28 @@
 -- Simplified init.lua for Hammerspoon
 -- Working version with modular architecture
 
--- Essential hotkeys (always available)
-hs.hotkey.bind({"ctrl", "cmd", "alt"}, "R", "Hammerspoon Reloading...", function()
-    hs.reload()
-end)
+local hotkey_utils = require("utils.hotkey_utils")
 
-hs.hotkey.bind({"ctrl", "cmd", "alt"}, "H", "Hammerspoon Console", function()
-    hs.openConsole()
-end)
+-- Essential hotkeys (always available)
+hotkey_utils.bind({"ctrl", "cmd", "alt"}, "R", {
+    module = "system",
+    id = "reload",
+    description = "Reload Hammerspoon configuration",
+    toast = {enabled = true, message = "Reloading Hammerspoon...", duration = 0.6},
+    pressed = function()
+        hs.reload()
+    end
+})
+
+hotkey_utils.bind({"ctrl", "cmd", "alt"}, "H", {
+    module = "system",
+    id = "console",
+    description = "Open Hammerspoon console",
+    toast = false,
+    pressed = function()
+        hs.openConsole()
+    end
+})
 
 local notification_utils = require("utils.notification_utils")
 
@@ -152,10 +166,18 @@ local baseMods, exposeKey = splitHotkey(exposeHotkey)
 
 if baseMods and exposeKey then
     local function bindLazy(mods, stepDirection)
-        local binding = hs.hotkey.bind(mods, exposeKey, "Window Switcher (Loading...)", function()
-            ensureWindowSwitcher(stepDirection)
-        end)
-        table.insert(lazyBindings, binding)
+        local binding = hotkey_utils.bind(mods, exposeKey, {
+            module = "system",
+            id = stepDirection == 1 and "window_switcher_lazy_forward" or "window_switcher_lazy_backward",
+            description = "Window Switcher (Lazy Load)",
+            toast = false,
+            pressed = function()
+                ensureWindowSwitcher(stepDirection)
+            end
+        })
+        if binding then
+            table.insert(lazyBindings, binding)
+        end
     end
 
     bindLazy(baseMods, 1)

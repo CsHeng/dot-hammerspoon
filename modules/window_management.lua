@@ -6,8 +6,10 @@ local logger = require("core.logger")
 local config = require("core.config_loader")
 local display_utils = require("utils.display_utils")
 local window_utils = require("utils.window_utils")
+local hotkey_utils = require("utils.hotkey_utils")
 
 local log = logger.getLogger("window_management")
+local MODULE_NAME = "window_management"
 
 local M = {}
 
@@ -51,22 +53,46 @@ end
 function M.setupHalfScreenHotkeys()
     local hyper = getHotkey("window.hyper") or {"ctrl", "alt"}
 
-    -- Basic half positions without announcement overlay for responsiveness
-    hs.hotkey.bind(hyper, "left", function()
-        M.moveWindowHalf("left")
-    end)
+    -- Basic half positions without toast overlays for responsiveness
+    hotkey_utils.bind(hyper, "left", {
+        module = MODULE_NAME,
+        id = "half_left",
+        description = "Move Left Half",
+        toast = false,
+        pressed = function()
+            M.moveWindowHalf("left")
+        end
+    })
 
-    hs.hotkey.bind(hyper, "right", function()
-        M.moveWindowHalf("right")
-    end)
+    hotkey_utils.bind(hyper, "right", {
+        module = MODULE_NAME,
+        id = "half_right",
+        description = "Move Right Half",
+        toast = false,
+        pressed = function()
+            M.moveWindowHalf("right")
+        end
+    })
 
-    hs.hotkey.bind(hyper, "up", function()
-        M.moveWindowHalf("top")
-    end)
+    hotkey_utils.bind(hyper, "up", {
+        module = MODULE_NAME,
+        id = "half_top",
+        description = "Move Top Half",
+        toast = false,
+        pressed = function()
+            M.moveWindowHalf("top")
+        end
+    })
 
-    hs.hotkey.bind(hyper, "down", function()
-        M.moveWindowHalf("bottom")
-    end)
+    hotkey_utils.bind(hyper, "down", {
+        module = MODULE_NAME,
+        id = "half_bottom",
+        description = "Move Bottom Half",
+        toast = false,
+        pressed = function()
+            M.moveWindowHalf("bottom")
+        end
+    })
 end
 
 -- Setup quarter screen positioning hotkeys
@@ -74,21 +100,45 @@ function M.setupQuarterScreenHotkeys()
     local hyper_shift = getHotkey("window.hyper_shift") or {"ctrl", "alt", "shift"}
 
     -- Quarter positions with contextual movement
-    hs.hotkey.bind(hyper_shift, "left", function()
-        M.moveWindowQuarter("left")
-    end)
+    hotkey_utils.bind(hyper_shift, "left", {
+        module = MODULE_NAME,
+        id = "quarter_left",
+        description = "Move Left Quarter",
+        toast = false,
+        pressed = function()
+            M.moveWindowQuarter("left")
+        end
+    })
 
-    hs.hotkey.bind(hyper_shift, "right", function()
-        M.moveWindowQuarter("right")
-    end)
+    hotkey_utils.bind(hyper_shift, "right", {
+        module = MODULE_NAME,
+        id = "quarter_right",
+        description = "Move Right Quarter",
+        toast = false,
+        pressed = function()
+            M.moveWindowQuarter("right")
+        end
+    })
 
-    hs.hotkey.bind(hyper_shift, "up", function()
-        M.moveWindowQuarter("up")
-    end)
+    hotkey_utils.bind(hyper_shift, "up", {
+        module = MODULE_NAME,
+        id = "quarter_up",
+        description = "Move Top Quarter",
+        toast = false,
+        pressed = function()
+            M.moveWindowQuarter("up")
+        end
+    })
 
-    hs.hotkey.bind(hyper_shift, "down", function()
-        M.moveWindowQuarter("down")
-    end)
+    hotkey_utils.bind(hyper_shift, "down", {
+        module = MODULE_NAME,
+        id = "quarter_down",
+        description = "Move Bottom Quarter",
+        toast = false,
+        pressed = function()
+            M.moveWindowQuarter("down")
+        end
+    })
 end
 
 -- Setup special positioning hotkeys
@@ -96,17 +146,35 @@ function M.setupSpecialPositioningHotkeys()
     local hyper = getHotkey("window.hyper") or {"ctrl", "alt"}
 
     -- Maximize, center, original
-    hs.hotkey.bind(hyper, "return", function()
-        M.maximizeWindow()
-    end)
+    hotkey_utils.bind(hyper, "return", {
+        module = MODULE_NAME,
+        id = "maximize",
+        description = "Maximize Window",
+        toast = false,
+        pressed = function()
+            M.maximizeWindow()
+        end
+    })
 
-    hs.hotkey.bind(hyper, "c", function()
-        M.centerWindow()
-    end)
+    hotkey_utils.bind(hyper, "c", {
+        module = MODULE_NAME,
+        id = "center",
+        description = "Center Window",
+        toast = false,
+        pressed = function()
+            M.centerWindow()
+        end
+    })
 
-    hs.hotkey.bind(hyper, "o", function()
-        M.restoreOriginalWindow()
-    end)
+    hotkey_utils.bind(hyper, "o", {
+        module = MODULE_NAME,
+        id = "restore_original",
+        description = "Restore Original Window",
+        toast = false,
+        pressed = function()
+            M.restoreOriginalWindow()
+        end
+    })
 end
 
 -- Move window to half position

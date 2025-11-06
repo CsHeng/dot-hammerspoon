@@ -49,18 +49,18 @@ function M.setupAppHotkeys()
     hs.fnutils.each(launcher_apps, function(entry)
         if entry.key and entry.appname then
             local hotkey_desc = entry.hotkey_desc or string.format("Launch/Toggle %s", entry.appname)
+            local app_key = tostring(entry.appname):gsub("%s+", "_"):gsub("[^%w_%-]", "")
+            local binding_id = entry.id or string.format("launcher_%s", app_key:lower())
             local modifiers = entry.modifier or launcher_modifier
             hotkey_utils.bind(modifiers, entry.key, {
                 module = MODULE_NAME,
+                id = binding_id,
                 description = hotkey_desc,
-                announce = false,
+                toast = false,
                 pressed = function()
                     M.launchOrToggleApp(entry.appname, entry.bundleid)
                 end
             })
-            log.d(string.format("Registered hotkey: %s+%s -> %s",
-                table.concat(modifiers, "+"),
-                entry.key, entry.appname))
         end
     end)
 end
@@ -74,17 +74,16 @@ function M.setupRestartHotkeys()
     hs.fnutils.each(problematic_apps, function(entry)
         if entry.key and entry.appname then
             local hotkey_desc = string.format("Restart %s", entry.appname)
+            local restart_key = tostring(entry.appname):gsub("%s+", "_"):gsub("[^%w_%-]", "")
             hotkey_utils.bind(entry.modifier, entry.key, {
                 module = MODULE_NAME,
+                id = string.format("restart_%s", restart_key:lower()),
                 description = hotkey_desc,
-                announce = false,
+                toast = false,
                 pressed = function()
                     M.restartApp(entry.appname, entry.bundleid)
                 end
             })
-            log.d(string.format("Registered restart hotkey: %s+%s -> %s",
-                table.concat(entry.modifier, "+"),
-                entry.key, entry.appname))
         end
     end)
 end
@@ -108,8 +107,9 @@ function M.setupProtectionHotkeys()
 
     hotkey_utils.bind(cmdq_mods, cmdq_key, {
         module = MODULE_NAME,
+        id = "cmdq_protection",
         description = "Cmd+Q Protection",
-        announce = false,
+        toast = false,
         pressed = function()
             if cmdq_state.pressed then
                 -- Second press: Quit the frontmost app

@@ -2,12 +2,12 @@
 -- Creates a black window covering the notch area (like Boring Notch)
 
 local config = require("core.config_loader")
+local hotkey_utils = require("utils.hotkey_utils")
 local notification_utils = require("utils.notification_utils")
-local log = require("core.logger").getLogger("notch_hider")
+local MODULE_NAME = "notch_hider"
+local log = require("core.logger").getLogger(MODULE_NAME)
 
 local M = {}
-local MODULE_NAME = "notch_hider"
-
 -- Local state
 local notchWindow = nil
 local isActive = false
@@ -327,8 +327,6 @@ function M.init()
   -- Set up toggle hotkey
   if hotkeys.hotkeys.notch_hider and hotkeys.hotkeys.notch_hider.toggle then
     local hotkeyConfig = hotkeys.hotkeys.notch_hider.toggle
-    log:i("Registering notch hider hotkey: " .. table.concat(hotkeyConfig, "+"))
-
     -- hotkey.bind expects modifiers as first argument, key as second
     local modifiers = {}
     local key = nil
@@ -341,19 +339,29 @@ function M.init()
       end
     end
 
-    hotkey.bind(modifiers, key, function()
-      log:i("Notch hider hotkey triggered!")
-      M.toggle()
-    end)
-    log:i("Notch hider toggle hotkey registered successfully")
+    hotkey_utils.bind(modifiers, key, {
+      module = MODULE_NAME,
+      id = "toggle",
+      description = "Toggle Notch Hider",
+      toast = false,
+      pressed = function()
+        log:i("Notch hider hotkey triggered!")
+        M.toggle()
+      end
+    })
   else
     log:e("Notch hider hotkey configuration not found - using fallback")
     -- Try to register with hardcoded keybinding as fallback
-    hotkey.bind({"ctrl", "alt"}, "N", function()
-      log:i("Fallback notch hider hotkey triggered!")
-      M.toggle()
-    end)
-    log:i("Fallback notch hider hotkey registered")
+    hotkey_utils.bind({"ctrl", "alt"}, "N", {
+      module = MODULE_NAME,
+      id = "toggle_fallback",
+      description = "Toggle Notch Hider (Fallback)",
+      toast = false,
+      pressed = function()
+        log:i("Fallback notch hider hotkey triggered!")
+        M.toggle()
+      end
+    })
   end
 
   -- Auto-enable if configured

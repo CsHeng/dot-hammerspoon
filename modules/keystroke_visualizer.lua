@@ -58,8 +58,7 @@ function M.setupToggleHotkeys()
         module = MODULE_NAME,
         id = "toggle",
         description = "Toggle Keystroke Visualizer",
-        pressed = M.toggleKeystrokes,
-        announce = {
+        toast = {
             id = "toggle",
             enabled = true,
             duration = 1.5,
@@ -67,14 +66,14 @@ function M.setupToggleHotkeys()
                 local enabled = getKeyCastrConfig("enabled")
                 return "KeyCastr: " .. (enabled and "Enabled" or "Disabled")
             end
-        }
+        },
+        pressed = M.toggleKeystrokes
     })
     hotkey_utils.bind(circle_key, {
         module = MODULE_NAME,
         id = "click_circle",
         description = "Toggle Click Circle",
-        pressed = M.toggleClickCircle,
-        announce = {
+        toast = {
             id = "click_circle",
             enabled = true,
             duration = 1.5,
@@ -82,14 +81,14 @@ function M.setupToggleHotkeys()
                 local show_circle = getKeyCastrConfig("show_click_circle")
                 return "Click Circle: " .. (show_circle and "Enabled" or "Disabled")
             end
-        }
+        },
+        pressed = M.toggleClickCircle
     })
     hotkey_utils.bind(continuous_key, {
         module = MODULE_NAME,
         id = "continuous",
         description = "Toggle Continuous Input",
-        pressed = M.toggleContinuousInput,
-        announce = {
+        toast = {
             id = "continuous",
             enabled = true,
             duration = 1.5,
@@ -97,7 +96,8 @@ function M.setupToggleHotkeys()
                 local enabled = getKeyCastrConfig("continuous_input.enabled")
                 return "Continuous Input: " .. (enabled and "Enabled" or "Disabled")
             end
-        }
+        },
+        pressed = M.toggleContinuousInput
     })
 
     log.i("Setup keystroke visualizer hotkeys")

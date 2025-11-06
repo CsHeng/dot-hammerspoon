@@ -1,42 +1,25 @@
 -- Hotkey utilities to standardize binding behavior across the config.
--- Provides parsing helpers and centralizes whether Hammerspoon shows its
--- built-in alert when a hotkey fires.
+-- Provides consistent logging and pluggable toast/notification behaviour.
 
 local hotkey = require("hs.hotkey")
 local logger = require("core.logger")
 local notification_utils = require("utils.notification_utils")
 
+-- Suppress hs.hotkey's own info-level logs; keep warnings/errors.
+pcall(function()
+    if type(hotkey.setLogLevel) == "function" then
+        hotkey.setLogLevel("warning")
+    end
+end)
+
 local log = logger.getLogger("hotkey_utils")
 
 local M = {}
 
--- Normalize a hotkey specification into modifiers and key.
--- Accepts either an array-like table ({"ctrl","alt","k"}) or a table with
--- explicit keys ({modifiers = {...}, key = "k"}).
-function M.parseHotkey(spec)
-    if type(spec) ~= "table" then
-        return {}, spec
-    end
+-- ---------------------------------------------------------------------------
+-- Helpers
+-- ---------------------------------------------------------------------------
 
-    if spec.key ~= nil then
-        local modifiers = spec.modifiers or spec.mods or spec.modifier or {}
-        return modifiers, spec.key
-    end
-
-    local count = #spec
-    if count == 0 then
-        return {}, nil
-    end
-
-    local modifiers = {}
-    for i = 1, count - 1 do
-        modifiers[i] = spec[i]
-    end
-
-    return modifiers, spec[count]
-end
-
--- Internal helper to guard against nil callbacks.
 local function ensureHandler(fn, allowNil)
     if type(fn) == "function" then
         return fn
@@ -45,6 +28,28 @@ local function ensureHandler(fn, allowNil)
         return nil
     end
     return function() end
+end
+
+local function clone(value)
+    if type(value) ~= "table" then
+        return value
+    end
+    local copy = {}
+    for k, v in pairs(value) do
+        copy[k] = clone(v)
+    end
+    return copy
+end
+
+local function shallowCopy(tbl)
+    if type(tbl) ~= "table" then
+        return nil
+    end
+    local copy = {}
+    for k, v in pairs(tbl) do
+        copy[k] = v
+    end
+    return copy
 end
 
 local modifierSymbols = {
@@ -110,176 +115,170 @@ local function formatKey(key)
     return string.upper(key)
 end
 
+local function buildCombo(modifiers, key)
+    local mods = formatModifiers(modifiers)
+    local base = mods .. formatKey(key)
+    return base ~= "" and base or tostring(key)
+end
+
 local function buildMessage(modifiers, key, description)
-    local modifierString = formatModifiers(modifiers)
-    local keyString = formatKey(key)
-    local base = modifierString .. keyString
-    if base == "" then
-        base = tostring(key)
-    end
+    local combo = buildCombo(modifiers, key)
     if type(description) == "string" and description ~= "" then
-        return string.format("%s: %s", base, description)
+        return string.format("%s: %s", combo, description)
     end
-    return base
+    return combo
 end
 
-local function buildAnnouncementContext(options, modifiers, key, description)
-    local announceOpt = options.announce
-    if announceOpt == false then
+local function normalizeToastSpec(spec)
+    if spec == nil then
         return nil
     end
-
-    local context = {
-        module = options.module,
-        id = options.id,
-        default_message = buildMessage(modifiers, key, description),
-        call_before = false
-    }
-
-    if announceOpt == nil then
-        if not notification_utils.shouldAnnounce(context.module, context.id, nil) then
-            return nil
-        end
-        return context
+    if spec == false then
+        return false
+    end
+    if spec == true then
+        return {}
     end
 
-    if announceOpt == true then
-        context.override = true
-        return context
+    local specType = type(spec)
+    if specType == "table" then
+        return shallowCopy(spec)
+    elseif specType == "string" then
+        return {message = spec}
+    elseif specType == "number" then
+        return {duration = spec}
+    elseif specType == "function" then
+        return {message_fn = spec}
     end
 
-    local optType = type(announceOpt)
-    if optType == "function" then
-        context.message_fn = announceOpt
-        return context
-    elseif optType ~= "table" then
-        context.override = announceOpt
-        return context
-    end
-
-    if announceOpt.enabled == false then
-        return nil
-    elseif announceOpt.enabled == true and announceOpt.override == nil and announceOpt.config == nil and announceOpt.channel == nil then
-        context.override = true
-    end
-
-    if type(announceOpt.id) == "string" and announceOpt.id ~= "" then
-        context.id = announceOpt.id
-    end
-
-    if announceOpt.call_before == true then
-        context.call_before = true
-    end
-
-    if type(announceOpt.message_fn) == "function" then
-        context.message_fn = announceOpt.message_fn
-    elseif type(announceOpt.message) == "function" then
-        context.message_fn = announceOpt.message
-    elseif type(announceOpt.message) == "string" then
-        context.message = announceOpt.message
-    end
-
-    if type(announceOpt.message_args) == "table" then
-        context.message_args = announceOpt.message_args
-    end
-
-    if announceOpt.duration then
-        context.preferred_duration = announceOpt.duration
-    end
-
-    if announceOpt.title then
-        context.preferred_title = announceOpt.title
-    end
-
-    if announceOpt.alert_style then
-        context.preferred_alert_style = announceOpt.alert_style
-    end
-
-    if announceOpt.channel then
-        context.preferred_channel = announceOpt.channel
-    end
-
-    local overrideTable = nil
-
-    if type(announceOpt.config) == "table" then
-        overrideTable = overrideTable or {}
-        for k, v in pairs(announceOpt.config) do
-            overrideTable[k] = v
-        end
-    end
-
-    if announceOpt.override ~= nil then
-        if type(announceOpt.override) == "table" then
-            overrideTable = overrideTable or {}
-            for k, v in pairs(announceOpt.override) do
-                overrideTable[k] = v
-            end
-        else
-            context.override = announceOpt.override
-        end
-    end
-
-    if overrideTable then
-        if type(context.override) == "table" then
-            for k, v in pairs(overrideTable) do
-                context.override[k] = v
-            end
-        elseif context.override == nil then
-            context.override = overrideTable
-        end
-    end
-
-    return context
+    return {}
 end
 
-local function attachAnnouncementHandler(originalHandler, key, context)
-    if not context then
-        return originalHandler
+local function buildBindingId(options, combo)
+    if type(options.id) == "string" and options.id ~= "" then
+        return options.id
+    end
+    if type(options.description) == "string" and options.description ~= "" then
+        return (options.description:gsub("%s+", "_"):gsub("[^%w_%-]", "")):lower()
+    end
+    local sanitized = combo:gsub("[^%w]+", "_"):gsub("_+", "_"):gsub("^_", ""):gsub("_$", "")
+    if sanitized == "" then
+        sanitized = "hotkey"
+    end
+    return sanitized:lower()
+end
+
+local function buildLogLabel(moduleName, combo, description, label)
+    local target = label or description
+    if type(target) ~= "string" or target == "" then
+        target = combo
+    end
+    if moduleName then
+        return string.format("[%s] %s -> %s", moduleName, combo, target)
+    end
+    return string.format("%s -> %s", combo, target)
+end
+
+local function computeToastPayload(baseMessage, toastSpec)
+    local payload = {}
+    if type(toastSpec) == "table" then
+        for k, v in pairs(toastSpec) do
+            payload[k] = v
+        end
+    elseif toastSpec == nil or toastSpec == true then
+        -- rely entirely on configuration defaults
+    elseif type(toastSpec) == "string" then
+        payload.message = toastSpec
+    elseif type(toastSpec) == "number" then
+        payload.duration = toastSpec
+    elseif type(toastSpec) == "function" then
+        payload.message_fn = toastSpec
     end
 
-    local handler = ensureHandler(originalHandler, false)
+    payload.default_message = payload.default_message or baseMessage
 
-    local function performAnnouncement()
-        local ok, err = pcall(notification_utils.announce, context.module, context.id, {
-            message = context.message,
-            message_fn = context.message_fn,
-            message_args = context.message_args,
-            preferred_channel = context.preferred_channel,
-            preferred_duration = context.preferred_duration,
-            preferred_title = context.preferred_title,
-            preferred_alert_style = context.preferred_alert_style,
-            override = context.override,
-            default_message = context.default_message,
-            metadata = {
-                hotkey = context.default_message,
-                key = key
-            }
-        })
+    return payload
+end
 
+local function wrapPressedHandler(moduleName, bindingId, baseMessage, toastSpec, pressedHandler)
+    pressedHandler = ensureHandler(pressedHandler, false)
+
+    if toastSpec == false then
+        return pressedHandler
+    end
+
+    local normalizedSpec = normalizeToastSpec(toastSpec)
+    local shouldAnnounce = false
+
+    if normalizedSpec and normalizedSpec.force == true then
+        shouldAnnounce = true
+    elseif moduleName or bindingId then
+        shouldAnnounce = notification_utils.shouldAnnounce(moduleName, bindingId, normalizedSpec)
+    elseif normalizedSpec then
+        shouldAnnounce = true
+    end
+
+    if not shouldAnnounce then
+        return pressedHandler
+    end
+
+    local payload = computeToastPayload(baseMessage, normalizedSpec)
+    local callBefore = payload.call_before and true or false
+    payload.call_before = nil
+
+    payload.metadata = payload.metadata or {}
+    payload.metadata.hotkey = payload.metadata.hotkey or baseMessage
+    payload.metadata.id = payload.metadata.id or bindingId
+    payload.metadata.module = payload.metadata.module or moduleName
+
+    local function dispatch()
+        local ok, err = pcall(notification_utils.announce, moduleName, bindingId, clone(payload))
         if not ok then
-            log.w(string.format("Announcement failed for hotkey '%s': %s", tostring(key), tostring(err)))
+            log.w(string.format("Announcement failed for hotkey '%s': %s", tostring(bindingId), tostring(err)))
         end
     end
 
-    if context.call_before then
+    if callBefore then
         return function(...)
-            performAnnouncement()
-            return handler(...)
+            dispatch()
+            return pressedHandler(...)
         end
     end
 
     return function(...)
-        local results = table.pack(handler(...))
-        performAnnouncement()
+        local results = table.pack(pressedHandler(...))
+        dispatch()
         return table.unpack(results, 1, results.n)
     end
 end
 
--- Bind a hotkey while controlling whether Hammerspoon displays its default alert.
--- Usage patterns:
---   bind({"ctrl","alt"}, "K", {pressed = handler})
---   bind({"ctrl","alt","K"}, {pressed = handler})
---   bind({"ctrl","alt"}, "K", handler)
+-- ---------------------------------------------------------------------------
+-- Public API
+-- ---------------------------------------------------------------------------
+
+function M.parseHotkey(spec)
+    if type(spec) ~= "table" then
+        return {}, spec
+    end
+
+    if spec.key ~= nil then
+        local modifiers = spec.modifiers or spec.mods or spec.modifier or {}
+        return modifiers, spec.key
+    end
+
+    local count = #spec
+    if count == 0 then
+        return {}, nil
+    end
+
+    local modifiers = {}
+    for i = 1, count - 1 do
+        modifiers[i] = spec[i]
+    end
+
+    return modifiers, spec[count]
+end
+
 function M.bind(modifiersOrSpec, keyOrOptions, maybeOptions)
     local modifiers
     local key
@@ -319,64 +318,56 @@ function M.bind(modifiersOrSpec, keyOrOptions, maybeOptions)
         return nil
     end
 
+    local moduleName = options.module
+    local description = options.description
+    local logLabel = options.log_label
+
     local pressed = options.pressed or options.handler
     local released = options.released
     local repeatFn = options.repeatFn or options.repeat_handler or options.repeated
-    local description = options.description
-    local useHsAlert = options.use_hs_alert and description ~= nil
-
-    if type(pressed) ~= "function" then
-        log.w(string.format("Hotkey '%s' has no pressed handler; binding noop handler.", tostring(key)))
+    local toastSpec = options.toast
+    if toastSpec == nil then
+        toastSpec = options.announce
     end
 
-    pressed = ensureHandler(pressed, false)
+    local combo = buildCombo(modifiers, key)
+    local bindingId = buildBindingId(options, combo)
+    local message = buildMessage(modifiers, key, description)
+
+    if type(pressed) ~= "function" then
+        log.w(string.format("Hotkey '%s' has no pressed handler; binding noop handler.", tostring(combo)))
+    end
+
+    pressed = wrapPressedHandler(moduleName, bindingId, message, toastSpec, pressed)
     released = ensureHandler(released, true)
     repeatFn = ensureHandler(repeatFn, true)
 
+    local useHsAlert = options.use_hs_alert and (type(description) == "string" and description ~= "")
     local binding
-    local hasDescription = type(description) == "string" and description ~= ""
 
-    if useHsAlert and not hasDescription then
-        log.w(string.format("Hotkey '%s' requested default alert but no description provided; disabling alert.", tostring(key)))
-        useHsAlert = false
-    end
-
-    local announcementContext = buildAnnouncementContext(options, modifiers, key, description)
-    local wrappedPressed = attachAnnouncementHandler(pressed, key, announcementContext)
-
-    if hasDescription and not useHsAlert then
-        local newBinding = hotkey.new(modifiers, key, nil, wrappedPressed, released, repeatFn)
-        if not newBinding then
-            log.e(string.format("Failed to allocate hotkey '%s'", tostring(key)))
-            return nil
-        end
-
-        newBinding.msg = buildMessage(modifiers, key, description)
-
-        local enabled = newBinding:enable()
-        if not enabled then
-            log.e(string.format("Failed to enable hotkey '%s'", tostring(key)))
-            return nil
-        end
-        binding = enabled
-    elseif hasDescription then
-        binding = hotkey.bind(modifiers, key, description, wrappedPressed, released, repeatFn)
+    if useHsAlert then
+        binding = hotkey.bind(modifiers, key, description, pressed, released, repeatFn)
     else
-        binding = hotkey.bind(modifiers, key, wrappedPressed, released, repeatFn)
+        local hk = hotkey.new(modifiers, key, nil, pressed, released, repeatFn)
+        if not hk then
+            log.e(string.format("Failed to allocate hotkey '%s'", tostring(combo)))
+            return nil
+        end
+        binding = hk:enable()
     end
 
     if type(options.on_bind) == "function" then
         local ok, err = pcall(options.on_bind, binding)
         if not ok then
-            log.w(string.format("on_bind callback failed for hotkey '%s': %s", tostring(key), tostring(err)))
+            log.w(string.format("on_bind callback failed for hotkey '%s': %s", tostring(combo), tostring(err)))
         end
     end
 
-    if binding then
-        local modulePrefix = options.module and string.format("[%s] ", tostring(options.module)) or ""
-        local base = buildMessage(modifiers, key, nil)
-        local descriptionPart = hasDescription and string.format(" : %s", description) or ""
-        log.i(string.format("%sBound hotkey %s%s", modulePrefix, base, descriptionPart))
+    local entry = buildLogLabel(moduleName, combo, description, logLabel)
+    if type(options.logger) == "table" and type(options.logger.i) == "function" then
+        options.logger.i(entry)
+    else
+        hs.printf("[hotkeys] %s", entry)
     end
 
     return binding
