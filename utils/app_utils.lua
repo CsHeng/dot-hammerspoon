@@ -51,15 +51,32 @@ function M.toggleApp(app_name, bundle_id)
 end
 
 -- Restart an application
-function M.restartApp(app_name, bundle_id)
-    log.i(string.format("restartApp: %s %s", tostring(app_name), tostring(bundle_id)))
+function M.restartApp(app_name, bundle_id, restart_delay)
+    restart_delay = restart_delay or 0
+    log.i(string.format("restartApp: %s %s (delay: %ds)", tostring(app_name), tostring(bundle_id), restart_delay))
 
-    local app = hs.application.get(bundle_id)
-    if app then
-        app:kill()
-        hs.timer.doAfter(5, function()
+    local app = bundle_id and hs.application.get(bundle_id) or hs.application.get(app_name)
+
+    local function doLaunch()
+        if bundle_id then
             hs.application.launchOrFocusByBundleID(bundle_id)
-        end)
+        else
+            hs.application.launchOrFocus(app_name)
+        end
+        log.i(string.format("Launched %s after restart", app_name))
+    end
+
+    if app then
+        log.i(string.format("Killing %s before restart", app:name() or app_name))
+        app:kill()
+        if restart_delay > 0 then
+            hs.timer.doAfter(restart_delay, doLaunch)
+        else
+            doLaunch()
+        end
+    else
+        log.i(string.format("%s not running, launching directly", app_name))
+        doLaunch()
     end
 end
 

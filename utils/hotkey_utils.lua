@@ -76,7 +76,7 @@ local function formatModifiers(modifiers)
         local symbol = modifierSymbols[string.lower(mod)]
         parts[i] = symbol or string.upper(mod)
     end
-    return table.concat(parts)
+    return table.concat(parts, " ")
 end
 
 local function formatKey(key)
@@ -201,7 +201,8 @@ local function computeToastPayload(baseMessage, toastSpec)
 end
 
 local function wrapPressedHandler(moduleName, bindingId, baseMessage, toastSpec, pressedHandler)
-    pressedHandler = ensureHandler(pressedHandler, false)
+    -- ensure we always call a valid handler to satisfy static nil checks
+    local safeHandler = ensureHandler(pressedHandler, false) --[[@as fun(...):any]]
 
     if toastSpec == false then
         return pressedHandler
@@ -241,12 +242,12 @@ local function wrapPressedHandler(moduleName, bindingId, baseMessage, toastSpec,
     if callBefore then
         return function(...)
             dispatch()
-            return pressedHandler(...)
+            return safeHandler(...)
         end
     end
 
     return function(...)
-        local results = table.pack(pressedHandler(...))
+        local results = table.pack(safeHandler(...))
         dispatch()
         return table.unpack(results, 1, results.n)
     end

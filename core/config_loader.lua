@@ -178,7 +178,8 @@ local defaults = {
         },
 
         problematic_apps = {
-            {modifier = {"ctrl", "cmd", "alt"}, key = 'D', appname = 'DisplayLink Manager', bundleid = 'com.displaylink.DisplayLinkUserAgent'},
+            {modifier = {"ctrl", "cmd", "alt"}, key = 'D', appname = 'DisplayLink Manager', bundleid = 'com.displaylink.DisplayLinkUserAgent', restart_delay = 5},
+            -- Default: {modifier = {"ctrl", "cmd", "alt"}, key = 'X', appname = 'App Name', bundleid = 'com.bundle.id', restart_delay = 0},
         }
     }
 }

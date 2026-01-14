@@ -81,7 +81,7 @@ function M.setupRestartHotkeys()
                 description = hotkey_desc,
                 toast = false,
                 pressed = function()
-                    M.restartApp(entry.appname, entry.bundleid)
+                    M.restartApp(entry.appname, entry.bundleid, entry.restart_delay or 0)
                 end
             })
         end
@@ -171,10 +171,11 @@ function M.launchApp(identifier)
 end
 
 -- Restart application
-function M.restartApp(app_name, bundle_id)
-    log.i(string.format("Restart app: %s (%s)", app_name, bundle_id or "unknown"))
+function M.restartApp(app_name, bundle_id, restart_delay)
+    restart_delay = restart_delay or 0
+    log.i(string.format("Restart app: %s (%s, delay: %ds)", app_name, bundle_id or "unknown", restart_delay))
 
-    app_utils.restartApp(app_name, bundle_id)
+    app_utils.restartApp(app_name, bundle_id, restart_delay)
 end
 
 -- Kill application (force quit)

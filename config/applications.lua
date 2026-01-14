@@ -29,7 +29,7 @@ config.applications = {
 
     -- Applications that may need restarting
     problematic_apps = {
-        {modifier = {"ctrl", "cmd", "alt"}, key = 'D', appname = 'DisplayLink Manager', bundleid = 'com.displaylink.DisplayLinkUserAgent'},
+        {modifier = {"ctrl", "cmd", "alt"}, key = 'D', appname = 'DisplayLink Manager', bundleid = 'com.displaylink.DisplayLinkUserAgent', restart_delay = 5},
     }
 }
 
