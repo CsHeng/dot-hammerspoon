@@ -15,6 +15,11 @@
 - Hotkeys sourced from `config/hotkeys.keycastr.*`; bindings are registered through `hotkey_utils` with module context.
 - Runtime toggles call `config.set` so preferences persist within the session and across reloads.
 
+### Event Tap Registration
+The module only registers its global key event tap when `keycastr.enabled` is
+true. When disabled, the tap and cleanup timer are stopped so keystrokes are not
+observed or processed.
+
 ## Entry Points
 - Implementation: `modules/keystroke_visualizer.lua`.
 - Related utilities: `utils/notification_utils.lua` for on/off alerts, `utils/display_utils.lua` for positioning helpers.

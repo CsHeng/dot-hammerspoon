@@ -60,6 +60,7 @@ local function loadModularSystem()
         "modules/window_management",
         "modules/app_launcher",
         "modules/media_controls",
+        "modules/display_layout",
         mouse_module_name,
         "modules/wifi_automation",
         "modules/keystroke_visualizer",

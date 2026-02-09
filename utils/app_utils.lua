@@ -13,6 +13,47 @@ local browser_bundle_ids = {
     "com.google.Chrome"
 }
 
+local function appLabel(app)
+    if not app then
+        return "nil"
+    end
+    return string.format("%s(%s)", tostring(app:name()), tostring(app:bundleID()))
+end
+
+local function bringWindowToFront(win)
+    if not win then
+        return
+    end
+
+    if win:isMinimized() then
+        win:unminimize()
+    end
+
+    win:focus()
+    win:raise()
+end
+
+local function activateAppRobust(app)
+    if not app then
+        return false
+    end
+
+    if app:isHidden() then
+        app:unhide()
+    end
+
+    local win = app:focusedWindow() or app:mainWindow()
+    bringWindowToFront(win)
+    app:activate(true)
+    bringWindowToFront(app:focusedWindow() or app:mainWindow())
+
+    if not app:isFrontmost() then
+        return false
+    end
+
+    return true
+end
+
 -- Check if frontmost app is a browser
 function M.isBrowser()
     local app = hs.application.frontmostApplication()
@@ -28,23 +69,30 @@ end
 function M.toggleApp(app_name, bundle_id)
     log.i(string.format("toggleApp: %s %s", tostring(app_name), tostring(bundle_id)))
 
-    local app = hs.application.get(bundle_id)
+    local app = (bundle_id and hs.application.get(bundle_id)) or hs.application.get(app_name)
     if app then
         -- Application is running
-        if app:isFrontmost() then
+        local active_win = app:focusedWindow() or app:mainWindow()
+        local should_hide = app:isFrontmost() and not app:isHidden() and active_win and not active_win:isMinimized()
+        if should_hide then
             -- Hide the application
             app:hide()
             log.d(string.format("Hid running application: %s", app_name))
             return {success = true, action = "hide", running = true}
         else
             -- Bring to front
-            app:activate()
-            log.d(string.format("Activated running application: %s", app_name))
-            return {success = true, action = "activate", running = true}
+            local success = activateAppRobust(app)
+            log.d(string.format("Activated running application robustly: %s", app_name))
+            return {success = success, action = "activate", running = true}
         end
     else
         -- Application not running, launch it
-        local success = hs.application.launchOrFocus(app_name)
+        local success
+        if bundle_id and bundle_id ~= "" then
+            success = hs.application.launchOrFocusByBundleID(bundle_id)
+        else
+            success = hs.application.launchOrFocus(app_name)
+        end
         log.d(string.format("Launched new application process: %s (success: %s)", app_name, tostring(success)))
         return {success = success, action = "launch", running = false}
     end
@@ -89,19 +137,29 @@ function M.getApp(identifier)
     end
 
     -- Then try as app name
-    return hs.application.get(identifier)
+    if type(identifier) == "string" and identifier ~= "" then
+        return hs.appfinder.appFromName(identifier)
+    end
+
+    return nil
 end
 
 -- Focus application by name or bundle ID
 function M.focusApp(identifier)
     local app = M.getApp(identifier)
     if app then
-        app:activate()
-        return true
+        return activateAppRobust(app)
     end
 
-    log.w(string.format("Application not found: %s", identifier))
-    return false
+    local success = hs.application.launchOrFocus(identifier)
+    if not success and type(identifier) == "string" and identifier:find("%.") then
+        success = hs.application.launchOrFocusByBundleID(identifier)
+    end
+
+    if not success then
+        log.w(string.format("Application not found: %s", identifier))
+    end
+    return success
 end
 
 -- List all running applications

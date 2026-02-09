@@ -16,6 +16,26 @@
 - `config/mouse.management_module` selects between `modules.mouse_management` and `modules.mouse_management_spaces`.
 - Toast visibility follows the shared `hotkeys.announcements` settings via `hotkey_utils`.
 
+### Button Mapping (Default Module)
+- `Button2` (typically middle click): triggers Mission Control by sending `modifier+up`.
+  This mapping is bypassed inside browsers to preserve native middle click behaviour.
+- `Button3`: switches Space forward by sending `modifier+right`.
+- `Button4`: switches Space backward by sending `modifier+left`.
+
+The default implementation consumes both `otherMouseDown` and the corresponding
+`otherMouseUp` event for buttons it handles to avoid repeated/queued behaviour
+with some mouse drivers.
+
+In addition, it suppresses duplicate keystroke injections for the same button
+within ~50ms. This reduces accidental double space-switches caused by press/hold
+repeat behaviour or driver jitter.
+
+### Why The Default Modifier Uses Fn
+This configuration defaults `hotkeys.mouse.modifier` to `Fn+Ctrl` because on this
+machine, synthesised `Ctrl+Arrow` events sent via `hs.eventtap` do not reliably
+trigger macOS Mission Control / Space switching shortcuts, even when the System
+Settings shortcut UI shows `Ctrl+Left/Right/Up`.
+
 ## Entry Points
 - Default implementation: `modules/mouse_management.lua`.
 - Spaces-aware implementation: `modules/mouse_management_spaces.lua`.

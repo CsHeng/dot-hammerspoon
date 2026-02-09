@@ -157,6 +157,11 @@ local defaults = {
         }
     },
 
+    logging = {
+        global_level = "warning",
+        modules = {}
+    },
+
     applications = {
         launcher_apps = {
             {modifier = {"cmd", "alt"}, key = 'C', appname = 'Cursor', bundleid = 'com.todesktop.230313mzl4w4u92'},
@@ -178,7 +183,6 @@ local defaults = {
         },
 
         problematic_apps = {
-            {modifier = {"ctrl", "cmd", "alt"}, key = 'D', appname = 'DisplayLink Manager', bundleid = 'com.displaylink.DisplayLinkUserAgent', restart_delay = 5},
             -- Default: {modifier = {"ctrl", "cmd", "alt"}, key = 'X', appname = 'App Name', bundleid = 'com.bundle.id', restart_delay = 0},
         }
     }
@@ -188,6 +192,8 @@ local defaults = {
 local function loadConfigFiles()
     local config_files = {
         "hotkeys",
+        "logging",
+        "display_layout",
         "applications",
         "keycastr",
         "wifi",

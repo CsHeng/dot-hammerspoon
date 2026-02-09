@@ -9,6 +9,7 @@ This is a modular Hammerspoon configuration for macOS automation, providing wind
 ### Essential Hotkeys
 - `⌃⌘⌥R`: Reload Hammerspoon configuration
 - `⌃⌘⌥H`: Open Hammerspoon console
+- `⌃⌘⌥D`: Repair display layout
 - `⌃⌥⌘N`: Toggle notch hider overlay
 
 ### Window Management
@@ -33,6 +34,20 @@ This is a modular Hammerspoon configuration for macOS automation, providing wind
 - `⌘⌃⌥Space`: Play/Pause
 - `⌘⌃⌥↑/↓`: Volume control
 
+### Mouse Buttons
+- `Button2` (middle click): Mission Control (bypassed inside browsers)
+- `Button3`: Switch Space forward
+- `Button4`: Switch Space backward
+
+Mouse buttons are implemented by synthesizing keystrokes via `hs.eventtap`.
+This setup defaults to using `Fn+Ctrl` as the modifier chord because on this
+machine `Ctrl+Arrow` synthesized events do not reliably trigger macOS Mission
+Control/Space switching shortcuts.
+
+Some mouse drivers can emit repeated `otherMouseDown` events during a press/hold.
+The mouse module suppresses duplicate injections within a short window to avoid
+accidental double space-switches.
+
 ## Documentation
 
 - System overviews: `docs/SystemArchitecture.md`, `docs/ConfigurationSystem.md`, `docs/ModuleSystem.md`
@@ -54,6 +69,7 @@ Validate PlantUML files with `plantuml --check-syntax <diagram-path>`.
 - **`window_management.lua`** - Magnet-style window positioning
 - **`app_launcher.lua`** - Fast application launching
 - **`media_controls.lua`** - Media and system controls
+- **`display_layout.lua`** - Repair external display layout via `displayplacer`
 - **`mouse_management.lua`** - Mouse and input device management
 - **`wifi_automation.lua`** - Network automation and monitoring
 - **`keystroke_visualizer.lua`** - KeyCastr functionality
@@ -70,6 +86,7 @@ Validate PlantUML files with `plantuml --check-syntax <diagram-path>`.
 ### Configuration (`config/`)
 
 - **`hotkeys.lua`** - Central hotkey definitions
+- **`display_layout.lua`** - Displayplacer profiles for screen layout repair
 - **`applications.lua`** - Application configurations
 - **`keycastr.lua`** - KeyCastr settings
 - **`wifi.lua`** - WiFi automation settings

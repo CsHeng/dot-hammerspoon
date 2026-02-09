@@ -34,6 +34,17 @@ local function getHotkeyConfig(path)
     return config.get("hotkeys." .. path)
 end
 
+local function stopEventTracking()
+    if key_event_tap then
+        key_event_tap:stop()
+        key_event_tap = nil
+    end
+    if cleanup_timer then
+        cleanup_timer:stop()
+        cleanup_timer = nil
+    end
+end
+
 -- Initialize keystroke visualizer
 function M.init()
     log.i("Initializing keystroke visualizer module")
@@ -41,7 +52,7 @@ function M.init()
     -- Setup toggle hotkeys
     M.setupToggleHotkeys()
 
-    -- Setup event tracking
+    -- Setup event tracking only when enabled.
     M.setupEventTracking()
 
     -- Setup dragging
@@ -149,8 +160,10 @@ function M.toggleKeystrokes()
     local enabled = not getKeyCastrConfig("enabled")
     config.set("keycastr.enabled", enabled)
 
-    if not enabled then
-        resetEventQueue()
+    if enabled then
+        M.setupEventTracking()
+    else
+        stopEventTracking()
         M.clearAllDrawings()
     end
 
@@ -366,6 +379,16 @@ end
 
 -- Setup event tracking (simplified version)
 function M.setupEventTracking()
+    if not getKeyCastrConfig("enabled") then
+        stopEventTracking()
+        log.d("Skipped event tracking setup: keycastr is disabled")
+        return
+    end
+
+    if key_event_tap then
+        return
+    end
+
     -- Key event tracking
     key_event_tap = hs.eventtap.new({
         hs.eventtap.event.types.keyDown,
@@ -388,9 +411,11 @@ function M.setupEventTracking()
     key_event_tap:start()
 
     -- Cleanup timer
-    cleanup_timer = hs.timer.doEvery(0.5, M.cleanupExpiredKeystrokes)
+    if not cleanup_timer then
+        cleanup_timer = hs.timer.doEvery(0.5, M.cleanupExpiredKeystrokes)
+    end
 
-    log.i("Setup event tracking")
+    log.i("Setup event tracking (enabled)")
 end
 
 -- Setup dragging (simplified version)

@@ -14,6 +14,9 @@ local M = {}
 -- Global variables for mouse event taps
 local scroll_flip_tap = nil
 local mouse_button_tap = nil
+local consumed_mouse_buttons = {}
+local last_button_fire = {}
+local DUPLICATE_SUPPRESS_SECONDS = 0.05
 
 -- Get configuration values
 local function getHotkeyConfig(path)
@@ -32,6 +35,11 @@ local function describeModifiers(mods)
         return ""
     end
     return table.concat(mods, "+")
+end
+
+local function sendKeyCombo(modifiers, key)
+    hs.eventtap.keyStroke(modifiers, key, 0)
+    return true
 end
 
 -- Initialize mouse management
@@ -86,30 +94,63 @@ function M.setupMouseButtons()
     local shortcut_prefix = modifier_label ~= "" and (modifier_label .. "+") or ""
 
     log.i(string.format("Mouse button 2 -> %sup (Mission Control)", shortcut_prefix))
-    log.i(string.format("Mouse button 3 -> %sright (Application Windows)", shortcut_prefix))
-    log.i(string.format("Mouse button 4 -> %sleft (Custom Navigation)", shortcut_prefix))
+    log.i(string.format("Mouse button 3 -> %sright (Switch Space Forward)", shortcut_prefix))
+    log.i(string.format("Mouse button 4 -> %sleft (Switch Space Backward)", shortcut_prefix))
+    log.i("Mouse button 5 is ignored")
 
     mouse_button_tap = hs.eventtap.new({
         hs.eventtap.event.types.otherMouseDown,
-        -- hs.eventtap.event.types.otherMouseUp -- Uncomment if needed
+        hs.eventtap.event.types.otherMouseUp
     }, function(event)
+        local event_type = event:getType()
         local button = event:getProperty(hs.eventtap.event.properties.mouseEventButtonNumber)
 
-        if button == 2 and not app_utils.isBrowser() then
-            -- Back button - show mission control equivalent
-            log.d("Mouse button 2: Mission control")
-            hs.eventtap.keyStroke(mouse_modifier, "up", 0)
-            return true
-        elseif button == 3 then
-            -- Forward button - show application windows
-            log.d("Mouse button 3: Application windows")
-            hs.eventtap.keyStroke(mouse_modifier, "right", 0)
-            return true
-        elseif button == 4 then
-            -- Side button 1 - custom action
-            log.d("Mouse button 4: Custom action")
-            hs.eventtap.keyStroke(mouse_modifier, "left", 0)
-            return true
+        if event_type == hs.eventtap.event.types.otherMouseDown then
+            -- Some mouse drivers emit duplicate otherMouseDown events for a single physical press.
+            -- If we've already consumed this button and haven't seen the corresponding mouseUp yet,
+            -- treat subsequent mouseDown as duplicates (consume but don't inject another keystroke).
+            if consumed_mouse_buttons[button] then
+                return true
+            end
+
+            local consumed = false
+            if button == 2 and not app_utils.isBrowser() then
+                log.d("Mouse button 2: Mission control")
+                local now = hs.timer.secondsSinceEpoch()
+                local last = last_button_fire[button] or 0
+                if (now - last) >= DUPLICATE_SUPPRESS_SECONDS then
+                    sendKeyCombo(mouse_modifier, "up")
+                    last_button_fire[button] = now
+                end
+                consumed = true
+            elseif button == 3 then
+                log.d("Mouse button 3: Switch space forward")
+                local now = hs.timer.secondsSinceEpoch()
+                local last = last_button_fire[button] or 0
+                if (now - last) >= DUPLICATE_SUPPRESS_SECONDS then
+                    sendKeyCombo(mouse_modifier, "right")
+                    last_button_fire[button] = now
+                end
+                consumed = true
+            elseif button == 4 then
+                log.d("Mouse button 4: Switch space backward")
+                local now = hs.timer.secondsSinceEpoch()
+                local last = last_button_fire[button] or 0
+                if (now - last) >= DUPLICATE_SUPPRESS_SECONDS then
+                    sendKeyCombo(mouse_modifier, "left")
+                    last_button_fire[button] = now
+                end
+                consumed = true
+            end
+
+            if consumed then
+                consumed_mouse_buttons[button] = true
+            end
+            return consumed
+        elseif event_type == hs.eventtap.event.types.otherMouseUp then
+            local consumed = consumed_mouse_buttons[button]
+            consumed_mouse_buttons[button] = nil
+            return consumed or false
         end
 
         return false
@@ -322,6 +363,8 @@ function M.stop()
         mouse_button_tap:stop()
         mouse_button_tap = nil
     end
+    consumed_mouse_buttons = {}
+    last_button_fire = {}
 
     log.i("Mouse management stopped")
 end
