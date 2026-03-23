@@ -372,9 +372,10 @@ local function scheduleRepair(reason)
     pending_timer = hs.timer.doAfter(delay, attempt)
 end
 
--- Finds the current matching profile and returns:
---   restoreCmd: full displayplacer command to restore all screens (stored before disabling)
---   secondExternalId: persistent ID of the second external display
+-- Finds the current matching profile and builds:
+--   restoreCmd: full displayplacer command for extended mode (all screens independent)
+--   mirrorCmd:  displayplacer command that mirrors second external onto first external
+-- Uses displayplacer "id:<main>+<mirror> ..." syntax for mirroring.
 -- The second external is the 2nd non-internal (scaling != "on") screen by x-origin.
 local function buildToggleInfo()
     local displayplacerPath = resolveDisplayplacerPath()
@@ -409,12 +410,14 @@ local function buildToggleInfo()
         return nil, nil
     end
 
+    -- Build restore command (full profile, extended mode)
     local restoreCmd, err = buildDisplayplacerCommand(displayplacerPath, matchedProfile.screens)
     if not restoreCmd then
         log.w("buildToggleInfo: failed to build restore command: " .. tostring(err))
         return nil, nil
     end
 
+    -- Sort screens by x-origin, classify into internal / externals
     local screens = {}
     for _, s in ipairs(matchedProfile.screens or {}) do
         screens[#screens + 1] = s
@@ -425,19 +428,52 @@ local function buildToggleInfo()
         return ax < bx
     end)
 
+    local firstExternal = nil
+    local secondExternal = nil
+    local otherScreens = {}
     local externalCount = 0
     for _, s in ipairs(screens) do
         if s.scaling ~= "on" then
             externalCount = externalCount + 1
-            if externalCount == 2 then
-                log.d(string.format("buildToggleInfo: secondExternalId=%s", tostring(s.id)))
-                return restoreCmd, s.id
+            if externalCount == 1 then
+                firstExternal = s
+            elseif externalCount == 2 then
+                secondExternal = s
+            else
+                otherScreens[#otherScreens + 1] = s
             end
+        else
+            otherScreens[#otherScreens + 1] = s
         end
     end
 
-    log.d("buildToggleInfo: fewer than 2 external screens in matched profile")
-    return nil, nil
+    if not firstExternal or not secondExternal then
+        log.d("buildToggleInfo: fewer than 2 external screens in matched profile")
+        return nil, nil
+    end
+
+    -- Build mirror command: merge first+second external into one arg via "id:<first>+<second>"
+    -- The first ID is the "Optimize for" screen; uses first external's res/origin/etc.
+    local mirrorFirst = {}
+    for k, v in pairs(firstExternal) do
+        mirrorFirst[k] = v
+    end
+    mirrorFirst.id = firstExternal.id .. "+" .. secondExternal.id
+
+    local mirrorScreens = {}
+    for _, s in ipairs(otherScreens) do
+        mirrorScreens[#mirrorScreens + 1] = s
+    end
+    mirrorScreens[#mirrorScreens + 1] = mirrorFirst
+
+    local mirrorCmd, mirrorErr = buildDisplayplacerCommand(displayplacerPath, mirrorScreens)
+    if not mirrorCmd then
+        log.w("buildToggleInfo: failed to build mirror command: " .. tostring(mirrorErr))
+        return nil, nil
+    end
+
+    log.d(string.format("buildToggleInfo: firstExternal=%s, secondExternal=%s", firstExternal.id, secondExternal.id))
+    return restoreCmd, mirrorCmd
 end
 
 local function toggleSecondExternal()
@@ -452,15 +488,14 @@ local function toggleSecondExternal()
     end
 
     if not second_external_enabled then
-        -- Re-enable via stored restore command.
-        -- Cannot use profile matching here: screen is absent from displayplacer list while disabled.
-        log.i("toggleSecondExternal: re-enabling via stored restore command")
+        -- Unmirror: restore extended mode via stored restore command.
+        log.i("toggleSecondExternal: restoring extended mode")
         if second_external_restore_cmd then
             local output, ok = hs.execute(second_external_restore_cmd)
             if not ok then
                 log.w(string.format("toggleSecondExternal: restore failed: %s", tostring(output)))
                 notification_utils.announce(MODULE_NAME, "toggle_restore_failed", {
-                    message = "Failed to restore second external",
+                    message = "Failed to restore extended mode",
                     duration = 1.5,
                     override = true
                 })
@@ -468,22 +503,22 @@ local function toggleSecondExternal()
             end
             second_external_restore_cmd = nil
         else
-            -- Fallback after config reload (restore cmd lost); let repair try anyway.
+            -- Fallback after config reload (restore cmd lost); re-apply profile.
             log.w("toggleSecondExternal: no restore cmd stored, falling back to profile repair")
             scheduleRepair("hotkey")
         end
         second_external_enabled = true
-        notification_utils.announce(MODULE_NAME, "toggle_enabled", {
-            message = "Second external: enabled",
+        notification_utils.announce(MODULE_NAME, "toggle_extended", {
+            message = "Second external: extended",
             duration = 1.0,
             override = true
         })
         return
     end
 
-    -- Build restore command + get second external ID before disabling.
-    local restoreCmd, id = buildToggleInfo()
-    if not restoreCmd or not id then
+    -- Mirror second external onto first external.
+    local restoreCmd, mirrorCmd = buildToggleInfo()
+    if not restoreCmd or not mirrorCmd then
         notification_utils.announce(MODULE_NAME, "toggle_not_found", {
             message = "Second external display not found",
             duration = 1.5,
@@ -492,22 +527,20 @@ local function toggleSecondExternal()
         return
     end
 
-    local arg = string.format("%q", "id:" .. id .. " enabled:false")
-    local cmd = displayplacerPath .. " " .. arg
-    log.i(string.format("toggleSecondExternal: disabling id=%s", id))
-    local output, ok = hs.execute(cmd)
+    log.i("toggleSecondExternal: mirroring second external onto first")
+    local output, ok = hs.execute(mirrorCmd)
     if ok then
         second_external_restore_cmd = restoreCmd
         second_external_enabled = false
-        notification_utils.announce(MODULE_NAME, "toggle_disabled", {
-            message = "Second external: disabled",
+        notification_utils.announce(MODULE_NAME, "toggle_mirrored", {
+            message = "Second external: mirrored",
             duration = 1.0,
             override = true
         })
     else
-        log.w(string.format("toggleSecondExternal: failed: %s", tostring(output)))
+        log.w(string.format("toggleSecondExternal: mirror failed: %s", tostring(output)))
         notification_utils.announce(MODULE_NAME, "toggle_failed", {
-            message = "Failed to disable second external",
+            message = "Failed to mirror second external",
             duration = 1.5,
             override = true
         })
