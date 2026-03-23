@@ -37,7 +37,8 @@ config.display_layout = {
     -- Deterministic profile priority when multiple profiles match.
     -- office / office_typec are the same physical screen via different input ports
     -- (DP→DP vs USB-C→internal DP); both produce identical layouts.
-    profile_order = {"home", "home_open", "office", "office_typec"},
+    -- *_open variants: MacBook lid open (internal display active).
+    profile_order = {"home", "home_open", "office", "office_typec", "office_typec_open"},
 
     profiles = {
         home = {
@@ -129,7 +130,7 @@ config.display_layout = {
             }
         },
 
-        -- First external via USB-C→internal DP connection (same physical screen, different port)
+        -- First external via USB-C→internal DP connection, lid closed
         office_typec = {
             enabled = true,
             require_total_screens = 2,
@@ -148,6 +149,39 @@ config.display_layout = {
                     res = "1920x1080",
                     scaling = "off",
                     origin = {2560, 0}, -- right
+                    degree = 0,
+                    enabled = true,
+                },
+            }
+        },
+
+        -- First external via USB-C→internal DP connection, lid open (internal + 2 externals)
+        office_typec_open = {
+            enabled = true,
+            require_total_screens = 3,
+
+            screens = {
+                {
+                    id = "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+                    res = "1800x1169",
+                    scaling = "on",
+                    origin = {0, 0}, -- left (internal)
+                    degree = 0,
+                    enabled = true,
+                },
+                {
+                    id = "3C67BC99-4806-4DFE-878D-A6E51B4BE48D",
+                    res = "2560x1440",
+                    scaling = "off",
+                    origin = {1800, 0}, -- middle
+                    degree = 0,
+                    enabled = true,
+                },
+                {
+                    id = "E5AD9F0D-0529-4234-ABF2-4053381A7C58",
+                    res = "1920x1080",
+                    scaling = "off",
+                    origin = {4360, 0}, -- right
                     degree = 0,
                     enabled = true,
                 },
