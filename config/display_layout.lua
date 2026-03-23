@@ -17,8 +17,8 @@ config.display_layout = {
 
     -- Hotkeys
     hotkeys = {
-        -- Reuses the old Ctrl+Cmd+Alt+D chord
-        repair_home = {"ctrl", "cmd", "alt", "D"},
+        repair_display_layout  = {"ctrl", "cmd", "alt", "L"},
+        toggle_second_external = {"ctrl", "cmd", "alt", "D"},
     },
 
     -- Automatic repair (wake/unlock/screen topology change)
@@ -35,7 +35,9 @@ config.display_layout = {
     },
 
     -- Deterministic profile priority when multiple profiles match.
-    profile_order = {"home", "home_open", "office"},
+    -- office / office_typec are the same physical screen via different input ports
+    -- (DP→DP vs USB-C→internal DP); both produce identical layouts.
+    profile_order = {"home", "home_open", "office", "office_typec"},
 
     profiles = {
         home = {
@@ -102,10 +104,54 @@ config.display_layout = {
             }
         },
 
-        -- Placeholder for office profile (fill in tomorrow).
+        -- First external via DP→DP connection
         office = {
-            enabled = false,
-            screens = {}
+            enabled = true,
+            require_total_screens = 2,
+
+            screens = {
+                {
+                    id = "075DB5BC-C716-43A9-9B8F-74B020DAE11A",
+                    res = "2560x1440",
+                    scaling = "off",
+                    origin = {0, 0}, -- main display (left)
+                    degree = 0,
+                    enabled = true,
+                },
+                {
+                    id = "E5AD9F0D-0529-4234-ABF2-4053381A7C58",
+                    res = "1920x1080",
+                    scaling = "off",
+                    origin = {2560, 0}, -- right
+                    degree = 0,
+                    enabled = true,
+                },
+            }
+        },
+
+        -- First external via USB-C→internal DP connection (same physical screen, different port)
+        office_typec = {
+            enabled = true,
+            require_total_screens = 2,
+
+            screens = {
+                {
+                    id = "3C67BC99-4806-4DFE-878D-A6E51B4BE48D",
+                    res = "2560x1440",
+                    scaling = "off",
+                    origin = {0, 0}, -- main display (left)
+                    degree = 0,
+                    enabled = true,
+                },
+                {
+                    id = "E5AD9F0D-0529-4234-ABF2-4053381A7C58",
+                    res = "1920x1080",
+                    scaling = "off",
+                    origin = {2560, 0}, -- right
+                    degree = 0,
+                    enabled = true,
+                },
+            }
         }
     }
 }

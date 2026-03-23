@@ -16,6 +16,7 @@ local caffeinate_watcher = nil
 local pending_timer = nil
 local retry_timer = nil
 local attempt_count = 0
+local second_external_enabled = true
 
 local function getConfig(path, default)
     return config.get("display_layout." .. path, default)
@@ -289,7 +290,7 @@ local function shouldNotify(reason)
     return notifications.show_on_auto_repair == true
 end
 
-local function repairHome(reason)
+local function repairDisplayLayout(reason)
     local success, result = applyMatchingProfile(reason)
     if not success then
         local message = tostring(result)
@@ -305,6 +306,8 @@ local function repairHome(reason)
     end
 
     local appliedKey = tostring(result)
+    -- A full-profile repair implies all screens are enabled again
+    second_external_enabled = true
     if shouldNotify(reason) then
         notification_utils.announce(MODULE_NAME, "repair_ok", {
             message = string.format("Display layout repaired (%s)", appliedKey),
@@ -346,7 +349,7 @@ local function scheduleRepair(reason)
     local function attempt()
         attempt_count = attempt_count + 1
         log.d(string.format("Repair attempt %d/%d (reason=%s)", attempt_count, max_attempts, reason))
-        if repairHome(reason) then
+        if repairDisplayLayout(reason) then
             cancelTimers()
             return
         end
@@ -361,26 +364,162 @@ local function scheduleRepair(reason)
     pending_timer = hs.timer.doAfter(delay, attempt)
 end
 
+-- Returns the persistent ID of the second external display from the currently
+-- matching profile, or nil if unavailable.
+-- Internal (Retina/built-in) is identified by scaling == "on".
+-- Externals are sorted by x-origin; second external = externals[2].
+local function getSecondExternalId()
+    local displayplacerPath = resolveDisplayplacerPath()
+    if not displayplacerPath then
+        log.w("getSecondExternalId: displayplacer not found")
+        return nil
+    end
+
+    local listOutput, ok = hs.execute(displayplacerPath .. " list")
+    if not ok then
+        log.w("getSecondExternalId: displayplacer list failed")
+        return nil
+    end
+
+    local ids = parsePersistentIds(listOutput)
+    local profiles = getConfig("profiles", {})
+
+    local matchedProfile = nil
+    for _, profileKey in ipairs(getProfileOrder(profiles)) do
+        local profile = profiles[profileKey]
+        if type(profile) == "table" and profile.enabled ~= false then
+            if profileMatches(profile, ids) then
+                matchedProfile = profile
+                log.d(string.format("getSecondExternalId: matched profile '%s'", profileKey))
+                break
+            end
+        end
+    end
+
+    if not matchedProfile then
+        log.d("getSecondExternalId: no profile matched current display topology")
+        return nil
+    end
+
+    local screens = {}
+    for _, s in ipairs(matchedProfile.screens or {}) do
+        screens[#screens + 1] = s
+    end
+
+    table.sort(screens, function(a, b)
+        local ax = type(a.origin) == "table" and (a.origin.x or a.origin[1] or 0) or 0
+        local bx = type(b.origin) == "table" and (b.origin.x or b.origin[1] or 0) or 0
+        return ax < bx
+    end)
+
+    local externalCount = 0
+    for _, s in ipairs(screens) do
+        if s.scaling ~= "on" then
+            externalCount = externalCount + 1
+            if externalCount == 2 then
+                log.d(string.format("getSecondExternalId: id=%s", tostring(s.id)))
+                return s.id
+            end
+        end
+    end
+
+    log.d("getSecondExternalId: fewer than 2 external screens in matched profile")
+    return nil
+end
+
+local function toggleSecondExternal()
+    local displayplacerPath = resolveDisplayplacerPath()
+    if not displayplacerPath then
+        notification_utils.announce(MODULE_NAME, "toggle_no_tool", {
+            message = "displayplacer not found",
+            duration = 1.5,
+            override = true
+        })
+        return
+    end
+
+    if not second_external_enabled then
+        log.i("toggleSecondExternal: re-enabling via profile repair")
+        second_external_enabled = true
+        scheduleRepair("hotkey")
+        notification_utils.announce(MODULE_NAME, "toggle_enabled", {
+            message = "Second external: enabled",
+            duration = 1.0,
+            override = true
+        })
+        return
+    end
+
+    local id = getSecondExternalId()
+    if not id then
+        notification_utils.announce(MODULE_NAME, "toggle_not_found", {
+            message = "Second external display not found",
+            duration = 1.5,
+            override = true
+        })
+        return
+    end
+
+    local arg = string.format("%q", "id:" .. id .. " enabled:false")
+    local cmd = displayplacerPath .. " " .. arg
+    log.i(string.format("toggleSecondExternal: disabling id=%s", id))
+    local output, ok = hs.execute(cmd)
+    if ok then
+        second_external_enabled = false
+        notification_utils.announce(MODULE_NAME, "toggle_disabled", {
+            message = "Second external: disabled",
+            duration = 1.0,
+            override = true
+        })
+    else
+        log.w(string.format("toggleSecondExternal: failed: %s", tostring(output)))
+        notification_utils.announce(MODULE_NAME, "toggle_failed", {
+            message = "Failed to disable second external",
+            duration = 1.5,
+            override = true
+        })
+    end
+end
+
 function M.init()
     log.i("Initializing display layout module")
 
-    local hotkey = getConfig("hotkeys.repair_home", {"ctrl", "cmd", "alt", "D"})
-    local mods, key = hotkey_utils.parseHotkey(hotkey)
+    local repairHotkey = getConfig("hotkeys.repair_display_layout", {"ctrl", "cmd", "alt", "L"})
+    local mods, key = hotkey_utils.parseHotkey(repairHotkey)
 
     if key then
         hotkey_utils.bind(mods, key, {
             module = MODULE_NAME,
-            id = "repair_home_layout",
+            id = "repair_display_layout",
             description = "Repair display layout",
             toast = false,
             pressed = function()
-                log.i("Event: hotkey triggered (repair_home)")
+                log.i("Event: hotkey triggered (repair_display_layout)")
                 scheduleRepair("hotkey")
             end
         })
-        log.d(string.format("Hotkey bound: %s+%s", table.concat(mods, "+"), key))
+        log.d(string.format("Hotkey bound: %s+%s (repair_display_layout)", table.concat(mods, "+"), key))
     else
-        log.w("display_layout.hotkeys.repair_home is invalid; skipping hotkey bind")
+        log.w("display_layout.hotkeys.repair_display_layout is invalid; skipping hotkey bind")
+    end
+
+    local toggleHotkey = getConfig("hotkeys.toggle_second_external", {"ctrl", "cmd", "alt", "D"})
+    local toggleMods, toggleKey = hotkey_utils.parseHotkey(toggleHotkey)
+
+    if toggleKey then
+        hotkey_utils.bind(toggleMods, toggleKey, {
+            module = MODULE_NAME,
+            id = "toggle_second_external",
+            description = "Toggle second external display",
+            toast = false,
+            pressed = function()
+                log.i("Event: hotkey triggered (toggle_second_external)")
+                toggleSecondExternal()
+            end
+        })
+        log.d(string.format("Hotkey bound: %s+%s (toggle_second_external)", table.concat(toggleMods, "+"), toggleKey))
+    else
+        log.w("display_layout.hotkeys.toggle_second_external is invalid; skipping hotkey bind")
     end
 
     local auto = getConfig("auto_repair", {})
