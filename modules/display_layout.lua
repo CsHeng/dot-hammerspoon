@@ -17,6 +17,7 @@ local pending_timer = nil
 local retry_timer = nil
 local attempt_count = 0
 local second_external_enabled = true
+local second_external_restore_cmd = nil  -- stored before disable; used to re-enable without profile matching
 
 local function getConfig(path, default)
     return config.get("display_layout." .. path, default)
@@ -308,6 +309,7 @@ local function repairDisplayLayout(reason)
     local appliedKey = tostring(result)
     -- A full-profile repair implies all screens are enabled again
     second_external_enabled = true
+    second_external_restore_cmd = nil
     if shouldNotify(reason) then
         notification_utils.announce(MODULE_NAME, "repair_ok", {
             message = string.format("Display layout repaired (%s)", appliedKey),
@@ -322,6 +324,12 @@ end
 local function scheduleRepair(reason)
     cancelTimers()
     attempt_count = 0
+
+    -- Preserve user's explicit disable intent; hotkey (⌃⌘⌥L) overrides and restores everything
+    if not second_external_enabled and reason ~= "hotkey" then
+        log.d(string.format("scheduleRepair: skipping (second external user-disabled, reason=%s)", reason))
+        return
+    end
 
     log.d(string.format("Scheduling repair (reason=%s)", reason))
 
@@ -364,21 +372,21 @@ local function scheduleRepair(reason)
     pending_timer = hs.timer.doAfter(delay, attempt)
 end
 
--- Returns the persistent ID of the second external display from the currently
--- matching profile, or nil if unavailable.
--- Internal (Retina/built-in) is identified by scaling == "on".
--- Externals are sorted by x-origin; second external = externals[2].
-local function getSecondExternalId()
+-- Finds the current matching profile and returns:
+--   restoreCmd: full displayplacer command to restore all screens (stored before disabling)
+--   secondExternalId: persistent ID of the second external display
+-- The second external is the 2nd non-internal (scaling != "on") screen by x-origin.
+local function buildToggleInfo()
     local displayplacerPath = resolveDisplayplacerPath()
     if not displayplacerPath then
-        log.w("getSecondExternalId: displayplacer not found")
-        return nil
+        log.w("buildToggleInfo: displayplacer not found")
+        return nil, nil
     end
 
     local listOutput, ok = hs.execute(displayplacerPath .. " list")
     if not ok then
-        log.w("getSecondExternalId: displayplacer list failed")
-        return nil
+        log.w("buildToggleInfo: displayplacer list failed")
+        return nil, nil
     end
 
     local ids = parsePersistentIds(listOutput)
@@ -390,22 +398,27 @@ local function getSecondExternalId()
         if type(profile) == "table" and profile.enabled ~= false then
             if profileMatches(profile, ids) then
                 matchedProfile = profile
-                log.d(string.format("getSecondExternalId: matched profile '%s'", profileKey))
+                log.d(string.format("buildToggleInfo: matched profile '%s'", profileKey))
                 break
             end
         end
     end
 
     if not matchedProfile then
-        log.d("getSecondExternalId: no profile matched current display topology")
-        return nil
+        log.d("buildToggleInfo: no profile matched current display topology")
+        return nil, nil
+    end
+
+    local restoreCmd, err = buildDisplayplacerCommand(displayplacerPath, matchedProfile.screens)
+    if not restoreCmd then
+        log.w("buildToggleInfo: failed to build restore command: " .. tostring(err))
+        return nil, nil
     end
 
     local screens = {}
     for _, s in ipairs(matchedProfile.screens or {}) do
         screens[#screens + 1] = s
     end
-
     table.sort(screens, function(a, b)
         local ax = type(a.origin) == "table" and (a.origin.x or a.origin[1] or 0) or 0
         local bx = type(b.origin) == "table" and (b.origin.x or b.origin[1] or 0) or 0
@@ -417,14 +430,14 @@ local function getSecondExternalId()
         if s.scaling ~= "on" then
             externalCount = externalCount + 1
             if externalCount == 2 then
-                log.d(string.format("getSecondExternalId: id=%s", tostring(s.id)))
-                return s.id
+                log.d(string.format("buildToggleInfo: secondExternalId=%s", tostring(s.id)))
+                return restoreCmd, s.id
             end
         end
     end
 
-    log.d("getSecondExternalId: fewer than 2 external screens in matched profile")
-    return nil
+    log.d("buildToggleInfo: fewer than 2 external screens in matched profile")
+    return nil, nil
 end
 
 local function toggleSecondExternal()
@@ -439,9 +452,27 @@ local function toggleSecondExternal()
     end
 
     if not second_external_enabled then
-        log.i("toggleSecondExternal: re-enabling via profile repair")
+        -- Re-enable via stored restore command.
+        -- Cannot use profile matching here: screen is absent from displayplacer list while disabled.
+        log.i("toggleSecondExternal: re-enabling via stored restore command")
+        if second_external_restore_cmd then
+            local output, ok = hs.execute(second_external_restore_cmd)
+            if not ok then
+                log.w(string.format("toggleSecondExternal: restore failed: %s", tostring(output)))
+                notification_utils.announce(MODULE_NAME, "toggle_restore_failed", {
+                    message = "Failed to restore second external",
+                    duration = 1.5,
+                    override = true
+                })
+                return
+            end
+            second_external_restore_cmd = nil
+        else
+            -- Fallback after config reload (restore cmd lost); let repair try anyway.
+            log.w("toggleSecondExternal: no restore cmd stored, falling back to profile repair")
+            scheduleRepair("hotkey")
+        end
         second_external_enabled = true
-        scheduleRepair("hotkey")
         notification_utils.announce(MODULE_NAME, "toggle_enabled", {
             message = "Second external: enabled",
             duration = 1.0,
@@ -450,8 +481,9 @@ local function toggleSecondExternal()
         return
     end
 
-    local id = getSecondExternalId()
-    if not id then
+    -- Build restore command + get second external ID before disabling.
+    local restoreCmd, id = buildToggleInfo()
+    if not restoreCmd or not id then
         notification_utils.announce(MODULE_NAME, "toggle_not_found", {
             message = "Second external display not found",
             duration = 1.5,
@@ -465,6 +497,7 @@ local function toggleSecondExternal()
     log.i(string.format("toggleSecondExternal: disabling id=%s", id))
     local output, ok = hs.execute(cmd)
     if ok then
+        second_external_restore_cmd = restoreCmd
         second_external_enabled = false
         notification_utils.announce(MODULE_NAME, "toggle_disabled", {
             message = "Second external: disabled",
