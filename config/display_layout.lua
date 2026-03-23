@@ -38,7 +38,7 @@ config.display_layout = {
     -- office / office_typec are the same physical screen via different input ports
     -- (DP→DP vs USB-C→internal DP); both produce identical layouts.
     -- *_open variants: MacBook lid open (internal display active).
-    profile_order = {"home", "home_open", "office", "office_typec", "office_typec_open"},
+    profile_order = {"home", "home_open", "office", "office_open", "office_typec", "office_typec_open"},
 
     profiles = {
         home = {
@@ -105,7 +105,7 @@ config.display_layout = {
             }
         },
 
-        -- First external via DP→DP connection
+        -- First external via DP→DP connection, lid closed
         office = {
             enabled = true,
             require_total_screens = 2,
@@ -124,6 +124,39 @@ config.display_layout = {
                     res = "1920x1080",
                     scaling = "off",
                     origin = {2560, 0}, -- right
+                    degree = 0,
+                    enabled = true,
+                },
+            }
+        },
+
+        -- First external via DP→DP connection, lid open (internal + 2 externals)
+        office_open = {
+            enabled = true,
+            require_total_screens = 3,
+
+            screens = {
+                {
+                    id = "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+                    res = "1800x1169",
+                    scaling = "on",
+                    origin = {0, 0}, -- left (internal)
+                    degree = 0,
+                    enabled = true,
+                },
+                {
+                    id = "075DB5BC-C716-43A9-9B8F-74B020DAE11A",
+                    res = "2560x1440",
+                    scaling = "off",
+                    origin = {1800, 0}, -- middle
+                    degree = 0,
+                    enabled = true,
+                },
+                {
+                    id = "E5AD9F0D-0529-4234-ABF2-4053381A7C58",
+                    res = "1920x1080",
+                    scaling = "off",
+                    origin = {4360, 0}, -- right
                     degree = 0,
                     enabled = true,
                 },
