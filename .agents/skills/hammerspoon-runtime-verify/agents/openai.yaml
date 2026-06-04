@@ -1,0 +1,4 @@
+interface:
+  display_name: "Hammerspoon Runtime Verify"
+  short_description: "Verify Hammerspoon runtime and CLI boundaries"
+  default_prompt: "Use $hammerspoon-runtime-verify to check a Hammerspoon behavior change before editing."
