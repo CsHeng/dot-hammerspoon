@@ -10,7 +10,7 @@
 - Guard against accidental quits by requiring a double press on Cmd+Q and surfacing guidance via notifications.
 
 ## WezTerm (F10) Flow
-- Binding: `config/applications.lua` registers `F10` as a launcher entry for WezTerm.
+- Binding: `config/applications.lua` registers `F10` as a launcher entry for WezTerm. The previous kitty entry remains commented out for rollback.
 - Trigger: the hotkey handler in `modules/app_launcher.lua` calls `M.launchOrToggleApp()`.
 - Toggle implementation: `utils/app_utils.toggleApp()` checks the running app via `hs.application` APIs (no local caching).
   - If WezTerm is frontmost and has a visible, non-minimised window: hide it.
