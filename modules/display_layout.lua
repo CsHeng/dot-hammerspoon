@@ -1,5 +1,7 @@
 -- Display Layout Module for Hammerspoon
 -- Repairs external display ordering + primary display via displayplacer.
+-- Office second-external input toggle uses m1ddc because displayplacer cannot
+-- reliably soft-disable/enable a display.
 
 local logger = require("core.logger")
 local config = require("core.config_loader")
@@ -8,6 +10,23 @@ local notification_utils = require("utils.notification_utils")
 
 local log = logger.getLogger("display_layout")
 local MODULE_NAME = "display_layout"
+local SECOND_EXTERNAL_STATE_KEY = "display_layout.second_external_toggle_state"
+
+local OFFICE_PROFILE_KEYS = {
+    office = true,
+    office_open = true,
+    office_typec = true,
+    office_typec_open = true,
+}
+
+local TOGGLE_PROFILE_KEYS = {
+    home = true,
+    home_open = true,
+    office = true,
+    office_open = true,
+    office_typec = true,
+    office_typec_open = true,
+}
 
 local M = {}
 
@@ -16,11 +35,27 @@ local caffeinate_watcher = nil
 local pending_timer = nil
 local retry_timer = nil
 local attempt_count = 0
-local second_external_enabled = true
-local second_external_restore_cmd = nil  -- stored before disable; used to re-enable without profile matching
+local second_external_state = {
+    on_mac_input = true,
+    uuid = nil,
+    command = "input",
+    mac_input = nil,
+    alt_input = nil,
+    mac_label = "DisplayPort 1",
+    alt_label = "HDMI 1",
+    reconnect_delay_seconds = 2.0,
+}
 
 local function getConfig(path, default)
     return config.get("display_layout." .. path, default)
+end
+
+local function notify(key, message, duration)
+    notification_utils.announce(MODULE_NAME, key, {
+        message = message,
+        duration = duration or 1.0,
+        override = true
+    })
 end
 
 local function fileExists(path)
@@ -30,30 +65,90 @@ local function fileExists(path)
     return hs.fs.attributes(path) ~= nil
 end
 
-local function resolveDisplayplacerPath()
-    local candidates = getConfig("displayplacer.paths", {
-        "/opt/homebrew/bin/displayplacer",
-        "/usr/local/bin/displayplacer",
-    })
+local function resolveToolPath(configPath, defaultCandidates, label)
+    local candidates = getConfig(configPath, defaultCandidates)
 
     if type(candidates) == "string" then
         candidates = {candidates}
     end
 
     if type(candidates) ~= "table" then
-        log.w("displayplacer.paths config is invalid (not a table)")
+        log.w(string.format("%s config is invalid (not a table): %s", label, configPath))
         return nil
     end
 
     for _, path in ipairs(candidates) do
         if fileExists(path) then
-            log.d(string.format("Resolved displayplacer path: %s", path))
+            log.d(string.format("Resolved %s path: %s", label, path))
             return path
         end
     end
 
-    log.w(string.format("displayplacer not found in any candidate path: %s", table.concat(candidates, ", ")))
+    log.w(string.format("%s not found in any candidate path: %s", label, table.concat(candidates, ", ")))
     return nil
+end
+
+local function resolveDisplayplacerPath()
+    return resolveToolPath("displayplacer.paths", {
+        "/opt/homebrew/bin/displayplacer",
+        "/usr/local/bin/displayplacer",
+    }, "displayplacer")
+end
+
+local function resolveM1ddcPath()
+    return resolveToolPath("m1ddc.paths", {
+        "/opt/homebrew/bin/m1ddc",
+        "/usr/local/bin/m1ddc",
+    }, "m1ddc")
+end
+
+local function normalizeSecondExternalState(state)
+    local normalized = {}
+
+    normalized.on_mac_input = state.on_mac_input ~= false
+    normalized.profile_key = type(state.profile_key) == "string" and state.profile_key or nil
+    normalized.uuid = type(state.uuid) == "string" and state.uuid or nil
+    normalized.command = state.command == "input-alt" and "input-alt" or "input"
+    normalized.mac_input = type(state.mac_input) == "number" and state.mac_input or nil
+    normalized.alt_input = type(state.alt_input) == "number" and state.alt_input or nil
+    normalized.mac_label = type(state.mac_label) == "string" and state.mac_label or "DisplayPort 1"
+    normalized.alt_label = type(state.alt_label) == "string" and state.alt_label or "HDMI 1"
+    normalized.reconnect_delay_seconds = type(state.reconnect_delay_seconds) == "number" and state.reconnect_delay_seconds or 2.0
+
+    return normalized
+end
+
+local function saveSecondExternalState()
+    hs.settings.set(SECOND_EXTERNAL_STATE_KEY, second_external_state)
+end
+
+local function loadSecondExternalState()
+    local saved = hs.settings.get(SECOND_EXTERNAL_STATE_KEY)
+    if type(saved) == "table" then
+        second_external_state = normalizeSecondExternalState(saved)
+    else
+        second_external_state = normalizeSecondExternalState(second_external_state)
+    end
+end
+
+local function updateSecondExternalState(spec, on_mac_input)
+    second_external_state = normalizeSecondExternalState({
+        on_mac_input = on_mac_input,
+        profile_key = spec.profile_key,
+        uuid = spec.uuid,
+        command = spec.command,
+        mac_input = spec.mac_input,
+        alt_input = spec.alt_input,
+        mac_label = spec.mac_label,
+        alt_label = spec.alt_label,
+        reconnect_delay_seconds = spec.reconnect_delay_seconds,
+    })
+    saveSecondExternalState()
+end
+
+local function markSecondExternalOnMacInput(on_mac_input)
+    second_external_state.on_mac_input = on_mac_input == true
+    saveSecondExternalState()
 end
 
 local function parsePersistentIds(displayplacerListOutput)
@@ -204,69 +299,191 @@ local function getProfileOrder(profiles)
     return keys
 end
 
-local function applyMatchingProfile(reason)
-    if getConfig("enabled", true) ~= true then
-        log.d("display_layout module is disabled")
-        return false, "display_layout disabled"
-    end
-
+local function findMatchingProfile(profileFilter)
     local profiles = getConfig("profiles", {})
     if type(profiles) ~= "table" then
         log.w("No profiles configured in display_layout.profiles")
-        return false, "no profiles configured"
+        return nil, "no profiles configured"
     end
 
     local displayplacerPath = resolveDisplayplacerPath()
     if not displayplacerPath then
-        return false, "displayplacer not found"
+        return nil, "displayplacer not found"
     end
 
     log.d("Running displayplacer list to detect connected screens")
     local listOutput, okList, _, rcList = hs.execute(displayplacerPath .. " list")
     if not okList then
         log.w(string.format("displayplacer list failed (rc=%s): %s", tostring(rcList), tostring(listOutput)))
-        return false, "displayplacer list failed"
+        return nil, "displayplacer list failed"
     end
 
     local ids = parsePersistentIds(listOutput)
     log.d(string.format("Detected %d screen(s): %s", #ids, table.concat(ids, ", ")))
 
-    local appliedKey = nil
-    local appliedProfile = nil
-
     for _, profileKey in ipairs(getProfileOrder(profiles)) do
         local profile = profiles[profileKey]
-        if type(profile) == "table" and profile.enabled ~= false then
+        local filterMatches = profileFilter == nil or profileFilter[profileKey] == true
+        if filterMatches and type(profile) == "table" and profile.enabled ~= false then
             log.d(string.format("Checking profile '%s'...", profileKey))
             if profileMatches(profile, ids) then
-                appliedKey = profileKey
-                appliedProfile = profile
                 log.d(string.format("Profile '%s' matched", profileKey))
-                break
+                return {
+                    key = profileKey,
+                    profile = profile,
+                    displayplacer_path = displayplacerPath,
+                }
             end
         end
     end
 
-    if not appliedKey or not appliedProfile then
-        log.d(string.format("No profile matches current %d display(s)", #ids))
-        return false, "no profile matches current displays"
+    log.d(string.format("No profile matches current %d display(s)", #ids))
+    return nil, "no profile matches current displays"
+end
+
+-- Classify profile screens into externals and others (internals), sorted by x-origin.
+local function classifyScreens(profile)
+    local screens = {}
+    for _, screen in ipairs(profile.screens or {}) do
+        screens[#screens + 1] = screen
     end
 
-    local cmd, err = buildDisplayplacerCommand(displayplacerPath, appliedProfile.screens)
+    table.sort(screens, function(a, b)
+        local ax = type(a.origin) == "table" and (a.origin.x or a.origin[1] or 0) or 0
+        local bx = type(b.origin) == "table" and (b.origin.x or b.origin[1] or 0) or 0
+        return ax < bx
+    end)
+
+    local externals = {}
+    local others = {}
+    for _, screen in ipairs(screens) do
+        if screen.scaling ~= "on" then
+            externals[#externals + 1] = screen
+        else
+            others[#others + 1] = screen
+        end
+    end
+
+    return externals, others
+end
+
+local function getToggleConfig(profileKey)
+    local configPath = OFFICE_PROFILE_KEYS[profileKey]
+        and "m1ddc.office_second_external_input_toggle"
+        or "m1ddc.home_second_external_input_toggle"
+
+    local toggleConfig = getConfig(configPath, {})
+    if type(toggleConfig) ~= "table" then
+        toggleConfig = {}
+    end
+    return toggleConfig
+end
+
+local function buildToggleSpec()
+    local matched, err = findMatchingProfile(TOGGLE_PROFILE_KEYS)
+    if not matched then
+        return nil, err
+    end
+
+    local externals = classifyScreens(matched.profile)
+    if #externals < 2 then
+        return nil, "second external display not found"
+    end
+
+    local toggleConfig = getToggleConfig(matched.key)
+    return {
+        profile_key = matched.key,
+        profile = matched.profile,
+        displayplacer_path = matched.displayplacer_path,
+        uuid = externals[2].id,
+        command = toggleConfig.command == "input-alt" and "input-alt" or "input",
+        mac_input = type(toggleConfig.mac_input) == "number" and toggleConfig.mac_input or 15,
+        alt_input = type(toggleConfig.alt_input) == "number" and toggleConfig.alt_input or 17,
+        mac_label = type(toggleConfig.mac_label) == "string" and toggleConfig.mac_label or "DisplayPort 1",
+        alt_label = type(toggleConfig.alt_label) == "string" and toggleConfig.alt_label or "HDMI 1",
+        reconnect_delay_seconds = type(toggleConfig.reconnect_delay_seconds) == "number" and toggleConfig.reconnect_delay_seconds or 2.0,
+    }
+end
+
+local function runM1ddcSetInput(m1ddcPath, spec, inputValue)
+    local cmd = string.format("%q display %q set %s %d", m1ddcPath, spec.uuid, spec.command, inputValue)
+    local output, ok, _, rc = hs.execute(cmd)
+    if not ok then
+        log.w(string.format("m1ddc set input failed (rc=%s): %s", tostring(rc), tostring(output)))
+        return false, tostring(output) ~= "" and tostring(output) or "m1ddc set input failed"
+    end
+
+    return true, tostring(output)
+end
+
+-- Mirror second external onto first external via displayplacer "id:<first>+<second>" syntax.
+-- This collapses the desktop boundary so the phantom screen area is eliminated.
+local function applyMirrorMode(displayplacerPath, profile)
+    local externals, others = classifyScreens(profile)
+    if #externals < 2 then
+        log.w("applyMirrorMode: fewer than 2 external screens")
+        return false
+    end
+
+    local first = externals[1]
+    local second = externals[2]
+
+    -- Build mirror pair: id:<first>+<second> uses first's display properties
+    local mirrorScreen = {}
+    for k, v in pairs(first) do
+        mirrorScreen[k] = v
+    end
+    mirrorScreen.id = first.id .. "+" .. second.id
+
+    local mirrorScreens = {}
+    for _, s in ipairs(others) do
+        mirrorScreens[#mirrorScreens + 1] = s
+    end
+    mirrorScreens[#mirrorScreens + 1] = mirrorScreen
+
+    local cmd, buildErr = buildDisplayplacerCommand(displayplacerPath, mirrorScreens)
     if not cmd then
-        log.e("Failed to build displayplacer command: " .. tostring(err))
+        log.w("applyMirrorMode: failed to build command: " .. tostring(buildErr))
+        return false
+    end
+
+    log.d(string.format("Applying mirror mode: %s mirrors %s", second.id, first.id))
+    local output, ok, _, rc = hs.execute(cmd)
+    if not ok then
+        log.w(string.format("applyMirrorMode: displayplacer failed (rc=%s): %s", tostring(rc), tostring(output)))
+        return false
+    end
+
+    log.i(string.format("Mirror mode applied: %s -> %s", second.id, first.id))
+    return true
+end
+
+local function applyMatchingProfile(reason)
+    if getConfig("enabled", true) ~= true then
+        log.d("display_layout module is disabled")
+        return false, "display_layout disabled"
+    end
+
+    local matched, err = findMatchingProfile(nil)
+    if not matched then
+        return false, err
+    end
+
+    local cmd, buildErr = buildDisplayplacerCommand(matched.displayplacer_path, matched.profile.screens)
+    if not cmd then
+        log.e("Failed to build displayplacer command: " .. tostring(buildErr))
         return false, "invalid profile config"
     end
 
-    log.d(string.format("Executing displayplacer command for profile '%s'", appliedKey))
+    log.d(string.format("Executing displayplacer command for profile '%s'", matched.key))
     local output, okApply, _, rcApply = hs.execute(cmd)
     if not okApply then
         log.w(string.format("displayplacer apply failed (rc=%s): %s", tostring(rcApply), tostring(output)))
         return false, "apply failed"
     end
 
-    log.i(string.format("Applied display profile '%s' (reason=%s)", tostring(appliedKey), tostring(reason)))
-    return true, appliedKey
+    log.i(string.format("Applied display profile '%s' (reason=%s)", tostring(matched.key), tostring(reason)))
+    return true, matched.key
 end
 
 local function cancelTimers()
@@ -277,6 +494,18 @@ local function cancelTimers()
     if retry_timer then
         retry_timer:stop()
         retry_timer = nil
+    end
+end
+
+local function cleanup()
+    cancelTimers()
+    if screen_watcher then
+        screen_watcher:stop()
+        screen_watcher = nil
+    end
+    if caffeinate_watcher then
+        caffeinate_watcher:stop()
+        caffeinate_watcher = nil
     end
 end
 
@@ -297,25 +526,14 @@ local function repairDisplayLayout(reason)
         local message = tostring(result)
         log.d(string.format("Display repair skipped/failed (reason=%s): %s", tostring(reason), message))
         if shouldNotify(reason) then
-            notification_utils.announce(MODULE_NAME, "repair_failed", {
-                message = message,
-                duration = 1.0,
-                override = true
-            })
+            notify("repair_failed", message)
         end
         return false
     end
 
-    local appliedKey = tostring(result)
-    -- A full-profile repair implies all screens are enabled again
-    second_external_enabled = true
-    second_external_restore_cmd = nil
+    markSecondExternalOnMacInput(true)
     if shouldNotify(reason) then
-        notification_utils.announce(MODULE_NAME, "repair_ok", {
-            message = string.format("Display layout repaired (%s)", appliedKey),
-            duration = 0.8,
-            override = true
-        })
+        notify("repair_ok", string.format("Display layout repaired (%s)", tostring(result)), 0.8)
     end
 
     return true
@@ -325,9 +543,8 @@ local function scheduleRepair(reason)
     cancelTimers()
     attempt_count = 0
 
-    -- Preserve user's explicit disable intent; hotkey (⌃⌘⌥L) overrides and restores everything
-    if not second_external_enabled and reason ~= "hotkey" then
-        log.d(string.format("scheduleRepair: skipping (second external user-disabled, reason=%s)", reason))
+    if not second_external_state.on_mac_input and reason ~= "hotkey" then
+        log.d(string.format("scheduleRepair: skipping (second external switched away from Mac input, reason=%s)", reason))
         return
     end
 
@@ -372,183 +589,115 @@ local function scheduleRepair(reason)
     pending_timer = hs.timer.doAfter(delay, attempt)
 end
 
--- Finds the current matching profile and builds:
---   restoreCmd: full displayplacer command for extended mode (all screens independent)
---   mirrorCmd:  displayplacer command that mirrors second external onto first external
--- Uses displayplacer "id:<main>+<mirror> ..." syntax for mirroring.
--- The second external is the 2nd non-internal (scaling != "on") screen by x-origin.
-local function buildToggleInfo()
+-- Restore second external to Mac input with single-flash strategy:
+-- 1. Apply extended layout FIRST (un-mirror while display still shows alt input — invisible)
+-- 2. Switch m1ddc input to Mac (single visible flash)
+local function restoreSecondExternalToMacInput()
+    if second_external_state.on_mac_input then
+        return true
+    end
+
+    local m1ddcPath = resolveM1ddcPath()
+    if not m1ddcPath then
+        notify("toggle_no_tool", "m1ddc not found", 1.5)
+        return false
+    end
+
+    if not second_external_state.uuid or type(second_external_state.mac_input) ~= "number" then
+        notify("toggle_restore_missing", "Second external restore target unknown", 1.5)
+        return false
+    end
+
+    -- Restore extended layout before switching input to avoid double flash.
+    -- The Mac still controls the display via DP even when DDC input shows HDMI.
+    local layoutRestored = false
     local displayplacerPath = resolveDisplayplacerPath()
-    if not displayplacerPath then
-        log.w("buildToggleInfo: displayplacer not found")
-        return nil, nil
+    if displayplacerPath and second_external_state.profile_key then
+        local profiles = getConfig("profiles", {})
+        local profile = profiles[second_external_state.profile_key]
+        if profile and profile.screens then
+            local cmd = buildDisplayplacerCommand(displayplacerPath, profile.screens)
+            if cmd then
+                log.d("Restoring extended layout before input switch")
+                local output, ok = hs.execute(cmd)
+                if ok then
+                    layoutRestored = true
+                    log.i("Extended layout restored (pre-switch)")
+                else
+                    log.w("Pre-switch layout restore failed: " .. tostring(output))
+                end
+            end
+        end
     end
 
-    local listOutput, ok = hs.execute(displayplacerPath .. " list")
+    log.i("restoreSecondExternalToMacInput: switching second external back to Mac input")
+    local ok = runM1ddcSetInput(m1ddcPath, second_external_state, second_external_state.mac_input)
     if not ok then
-        log.w("buildToggleInfo: displayplacer list failed")
-        return nil, nil
+        notify("toggle_restore_failed", "Failed to restore second external input", 1.5)
+        return false
     end
 
-    local ids = parsePersistentIds(listOutput)
-    local profiles = getConfig("profiles", {})
+    markSecondExternalOnMacInput(true)
 
-    local matchedProfile = nil
-    for _, profileKey in ipairs(getProfileOrder(profiles)) do
-        local profile = profiles[profileKey]
-        if type(profile) == "table" and profile.enabled ~= false then
-            if profileMatches(profile, ids) then
-                matchedProfile = profile
-                log.d(string.format("buildToggleInfo: matched profile '%s'", profileKey))
-                break
-            end
-        end
+    if not layoutRestored then
+        -- Fallback: layout wasn't restored pre-switch; schedule delayed repair
+        log.d("Layout not restored pre-switch; scheduling delayed repair")
+        hs.timer.doAfter(second_external_state.reconnect_delay_seconds, function()
+            scheduleRepair("hotkey")
+        end)
     end
 
-    if not matchedProfile then
-        log.d("buildToggleInfo: no profile matched current display topology")
-        return nil, nil
-    end
-
-    -- Build restore command (full profile, extended mode)
-    local restoreCmd, err = buildDisplayplacerCommand(displayplacerPath, matchedProfile.screens)
-    if not restoreCmd then
-        log.w("buildToggleInfo: failed to build restore command: " .. tostring(err))
-        return nil, nil
-    end
-
-    -- Sort screens by x-origin, classify into internal / externals
-    local screens = {}
-    for _, s in ipairs(matchedProfile.screens or {}) do
-        screens[#screens + 1] = s
-    end
-    table.sort(screens, function(a, b)
-        local ax = type(a.origin) == "table" and (a.origin.x or a.origin[1] or 0) or 0
-        local bx = type(b.origin) == "table" and (b.origin.x or b.origin[1] or 0) or 0
-        return ax < bx
-    end)
-
-    local firstExternal = nil
-    local secondExternal = nil
-    local otherScreens = {}
-    local externalCount = 0
-    for _, s in ipairs(screens) do
-        if s.scaling ~= "on" then
-            externalCount = externalCount + 1
-            if externalCount == 1 then
-                firstExternal = s
-            elseif externalCount == 2 then
-                secondExternal = s
-            else
-                otherScreens[#otherScreens + 1] = s
-            end
-        else
-            otherScreens[#otherScreens + 1] = s
-        end
-    end
-
-    if not firstExternal or not secondExternal then
-        log.d("buildToggleInfo: fewer than 2 external screens in matched profile")
-        return nil, nil
-    end
-
-    -- Build mirror command: merge first+second external into one arg via "id:<first>+<second>"
-    -- The first ID is the "Optimize for" screen; uses first external's res/origin/etc.
-    local mirrorFirst = {}
-    for k, v in pairs(firstExternal) do
-        mirrorFirst[k] = v
-    end
-    mirrorFirst.id = firstExternal.id .. "+" .. secondExternal.id
-
-    local mirrorScreens = {}
-    for _, s in ipairs(otherScreens) do
-        mirrorScreens[#mirrorScreens + 1] = s
-    end
-    mirrorScreens[#mirrorScreens + 1] = mirrorFirst
-
-    local mirrorCmd, mirrorErr = buildDisplayplacerCommand(displayplacerPath, mirrorScreens)
-    if not mirrorCmd then
-        log.w("buildToggleInfo: failed to build mirror command: " .. tostring(mirrorErr))
-        return nil, nil
-    end
-
-    log.d(string.format("buildToggleInfo: firstExternal=%s, secondExternal=%s", firstExternal.id, secondExternal.id))
-    return restoreCmd, mirrorCmd
+    notify("toggle_restored", string.format("Second external: %s", second_external_state.mac_label))
+    return true
 end
 
 local function toggleSecondExternal()
-    local displayplacerPath = resolveDisplayplacerPath()
-    if not displayplacerPath then
-        notification_utils.announce(MODULE_NAME, "toggle_no_tool", {
-            message = "displayplacer not found",
-            duration = 1.5,
-            override = true
-        })
+    local m1ddcPath = resolveM1ddcPath()
+    if not m1ddcPath then
+        notify("toggle_no_tool", "m1ddc not found", 1.5)
         return
     end
 
-    if not second_external_enabled then
-        -- Unmirror: restore extended mode via stored restore command.
-        log.i("toggleSecondExternal: restoring extended mode")
-        if second_external_restore_cmd then
-            local output, ok = hs.execute(second_external_restore_cmd)
-            if not ok then
-                log.w(string.format("toggleSecondExternal: restore failed: %s", tostring(output)))
-                notification_utils.announce(MODULE_NAME, "toggle_restore_failed", {
-                    message = "Failed to restore extended mode",
-                    duration = 1.5,
-                    override = true
-                })
-                return
-            end
-            second_external_restore_cmd = nil
-        else
-            -- Fallback after config reload (restore cmd lost); re-apply profile.
-            log.w("toggleSecondExternal: no restore cmd stored, falling back to profile repair")
-            scheduleRepair("hotkey")
-        end
-        second_external_enabled = true
-        notification_utils.announce(MODULE_NAME, "toggle_extended", {
-            message = "Second external: extended",
-            duration = 1.0,
-            override = true
-        })
+    if not second_external_state.on_mac_input then
+        restoreSecondExternalToMacInput()
         return
     end
 
-    -- Mirror second external onto first external.
-    local restoreCmd, mirrorCmd = buildToggleInfo()
-    if not restoreCmd or not mirrorCmd then
-        notification_utils.announce(MODULE_NAME, "toggle_not_found", {
-            message = "Second external display not found",
-            duration = 1.5,
-            override = true
-        })
+    local spec, err = buildToggleSpec()
+    if not spec then
+        local message = err == "no profile matches current displays"
+            and "Second external toggle currently supports configured home/office profiles only"
+            or tostring(err)
+        notify("toggle_not_available", message, 1.5)
         return
     end
 
-    log.i("toggleSecondExternal: mirroring second external onto first")
-    local output, ok = hs.execute(mirrorCmd)
-    if ok then
-        second_external_restore_cmd = restoreCmd
-        second_external_enabled = false
-        notification_utils.announce(MODULE_NAME, "toggle_mirrored", {
-            message = "Second external: mirrored",
-            duration = 1.0,
-            override = true
-        })
-    else
-        log.w(string.format("toggleSecondExternal: mirror failed: %s", tostring(output)))
-        notification_utils.announce(MODULE_NAME, "toggle_failed", {
-            message = "Failed to mirror second external",
-            duration = 1.5,
-            override = true
-        })
+    log.i(string.format("toggleSecondExternal: switching second external to %s + mirror", spec.alt_label))
+    local ok = runM1ddcSetInput(m1ddcPath, spec, spec.alt_input)
+    if not ok then
+        notify("toggle_failed", "Failed to switch second external input", 1.5)
+        return
     end
+
+    applyMirrorMode(spec.displayplacer_path, spec.profile)
+
+    updateSecondExternalState(spec, false)
+    notify("toggle_alt_input", string.format("Second external: %s (mirrored)", spec.alt_label))
+end
+
+local function handleRepairHotkey()
+    if not second_external_state.on_mac_input then
+        restoreSecondExternalToMacInput()
+        return
+    end
+
+    scheduleRepair("hotkey")
 end
 
 function M.init()
     log.i("Initializing display layout module")
+    cleanup()
+    loadSecondExternalState()
 
     local repairHotkey = getConfig("hotkeys.repair_display_layout", {"ctrl", "cmd", "alt", "L"})
     local mods, key = hotkey_utils.parseHotkey(repairHotkey)
@@ -561,7 +710,7 @@ function M.init()
             toast = false,
             pressed = function()
                 log.i("Event: hotkey triggered (repair_display_layout)")
-                scheduleRepair("hotkey")
+                handleRepairHotkey()
             end
         })
         log.d(string.format("Hotkey bound: %s+%s (repair_display_layout)", table.concat(mods, "+"), key))
@@ -576,7 +725,7 @@ function M.init()
         hotkey_utils.bind(toggleMods, toggleKey, {
             module = MODULE_NAME,
             id = "toggle_second_external",
-            description = "Toggle second external display",
+            description = "Toggle second external display input",
             toast = false,
             pressed = function()
                 log.i("Event: hotkey triggered (toggle_second_external)")
@@ -619,14 +768,12 @@ function M.init()
     caffeinate_watcher:start()
     log.d("Caffeinate watcher started")
 
-    -- Initial best-effort repair after startup.
     log.i("Event: startup")
     scheduleRepair("startup")
 
     log.i("Display layout module initialized")
 end
 
--- Register module with init system
 local init_system = require("core.init_system")
 init_system.registerModule("modules.display_layout", {
     init = M.init,

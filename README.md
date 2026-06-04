@@ -9,7 +9,8 @@ This is a modular Hammerspoon configuration for macOS automation, providing wind
 ### Essential Hotkeys
 - `⌃⌘⌥R`: Reload Hammerspoon configuration
 - `⌃⌘⌥H`: Open Hammerspoon console
-- `⌃⌘⌥D`: Repair display layout
+- `⌃⌘⌥D`: Toggle the supported home/office second external input (`DisplayPort 1` / `HDMI 1`)
+- `⌃⌘⌥L`: Repair display layout
 - `⌃⌥⌘N`: Toggle notch hider overlay
 
 ### Window Management
@@ -69,7 +70,7 @@ Validate PlantUML files with `plantuml --check-syntax <diagram-path>`.
 - **`window_management.lua`** - Magnet-style window positioning
 - **`app_launcher.lua`** - Fast application launching
 - **`media_controls.lua`** - Media and system controls
-- **`display_layout.lua`** - Repair external display layout via `displayplacer`
+- **`display_layout.lua`** - Repair external display layout via `displayplacer` and toggle the supported home/office second external input via `m1ddc`
 - **`mouse_management.lua`** - Mouse and input device management
 - **`wifi_automation.lua`** - Network automation and monitoring
 - **`keystroke_visualizer.lua`** - KeyCastr functionality
@@ -86,7 +87,7 @@ Validate PlantUML files with `plantuml --check-syntax <diagram-path>`.
 ### Configuration (`config/`)
 
 - **`hotkeys.lua`** - Central hotkey definitions
-- **`display_layout.lua`** - Displayplacer profiles for screen layout repair
+- **`display_layout.lua`** - Displayplacer profiles for screen layout repair plus supported home/office second external `m1ddc` input toggle
 - **`applications.lua`** - Application configurations
 - **`keycastr.lua`** - KeyCastr settings
 - **`wifi.lua`** - WiFi automation settings

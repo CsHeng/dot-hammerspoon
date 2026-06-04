@@ -1,4 +1,4 @@
--- Display layout configuration (displayplacer-based)
+-- Display layout configuration (displayplacer for layout repair, m1ddc for home/office input toggle)
 -- Home profiles are configured for dual 2560x1440 external monitors:
 -- - Lid closed: 2 screens (external-only)
 -- - Lid open: 3 screens (internal + 2 externals), with the middle external as primary
@@ -12,6 +12,35 @@ config.display_layout = {
         paths = {
             "/opt/homebrew/bin/displayplacer",
             "/usr/local/bin/displayplacer",
+        }
+    },
+
+    m1ddc = {
+        paths = {
+            "/opt/homebrew/bin/m1ddc",
+            "/usr/local/bin/m1ddc",
+        },
+
+        -- Home second external (DQ27F165L, UUID D062...) toggles between the
+        -- Mac DP feed and the spare HDMI input.
+        home_second_external_input_toggle = {
+            command = "input",
+            mac_input = 15,
+            alt_input = 17,
+            mac_label = "DisplayPort 1",
+            alt_label = "HDMI 1",
+            reconnect_delay_seconds = 2.0,
+        },
+
+        -- Office second external (DELL P2422H, UUID E5AD...) toggles between the
+        -- Mac DP feed and the spare HDMI input.
+        office_second_external_input_toggle = {
+            command = "input",
+            mac_input = 15,
+            alt_input = 17,
+            mac_label = "DisplayPort 1",
+            alt_label = "HDMI 1",
+            reconnect_delay_seconds = 2.0,
         }
     },
 
