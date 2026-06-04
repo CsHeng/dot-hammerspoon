@@ -36,7 +36,7 @@ This is a modular Hammerspoon configuration for macOS automation, providing wind
 - `⌘⌃⌥↑/↓`: Volume control
 
 ### Mouse Buttons
-- `Button2` (middle click): Mission Control (bypassed inside browsers)
+- `Button2` (middle click): Mission Control outside browsers; native browser middle-click inside browsers
 - `Button3`: Switch Space forward
 - `Button4`: Switch Space backward
 
@@ -44,6 +44,11 @@ Mouse buttons are implemented by synthesizing keystrokes via `hs.eventtap`.
 This setup defaults to using `Fn+Ctrl` as the modifier chord because on this
 machine `Ctrl+Arrow` synthesized events do not reliably trigger macOS Mission
 Control/Space switching shortcuts.
+
+Browser middle-click is intentionally left to Chrome, Edge, and Safari. It
+keeps native tab close and background-link-open behavior. Hammerspoon cannot
+reliably allow the browser to consume link clicks while reclaiming unconsumed
+middle-click events on page background for Mission Control fallback.
 
 Some mouse drivers can emit repeated `otherMouseDown` events during a press/hold.
 The mouse module suppresses duplicate injections within a short window to avoid
@@ -129,3 +134,7 @@ Validate PlantUML files with `plantuml --check-syntax <diagram-path>`.
 - Follow established naming conventions
 
 For detailed documentation, see the `docs/` summaries and accompanying diagrams.
+
+## For Agents
+
+AI-specific instructions and context are in [AGENTS.md](./AGENTS.md).

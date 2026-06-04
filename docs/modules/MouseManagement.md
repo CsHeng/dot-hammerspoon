@@ -22,6 +22,16 @@
 - `Button3`: switches Space forward by sending `modifier+right`.
 - `Button4`: switches Space backward by sending `modifier+left`.
 
+### Browser Middle Click Boundary
+Chrome, Edge, and Safari keep native middle-click behaviour. This preserves
+tab close and background-link-open workflows, which are more important than
+Mission Control from middle-click in browser content.
+
+Do not treat the missing browser fallback as drift. `hs.eventtap` can either
+delete an input event or let it propagate; it does not provide a reliable
+"browser did not consume this middle-click" callback that would let the module
+fall back to `modifier+up` only on page background clicks.
+
 The default implementation consumes both `otherMouseDown` and the corresponding
 `otherMouseUp` event for buttons it handles to avoid repeated/queued behaviour
 with some mouse drivers.
