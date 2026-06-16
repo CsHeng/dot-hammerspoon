@@ -12,9 +12,10 @@
 
 ## Configuration
 - `config/hotkeys.mouse.modifier` controls the modifier chord sent for side-button actions.
+- `config/hotkeys.mouse.speed_up`, `speed_down`, and `toggle_acceleration` define placeholder utility hotkeys.
 - `config/hotkeys.protection.paste_defeat` defines the paste-defeat shortcut.
 - `config/mouse.management_module` selects between `modules.mouse_management` and `modules.mouse_management_spaces`.
-- Toast visibility follows the shared `hotkeys.announcements` settings via `hotkey_utils`.
+- Toast visibility follows the shared `hotkeys_announcements` settings via `hotkey_utils`.
 
 ### Button Mapping (Default Module)
 - `Button2` (typically middle click): triggers Mission Control by sending `modifier+up`.

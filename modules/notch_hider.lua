@@ -28,6 +28,10 @@ local defaultConfig = {
   screen_uuid = false,
 }
 
+local DEFAULT_HOTKEYS = {
+  toggle = {"ctrl", "alt", "cmd", "n"}
+}
+
 -- Get notch screen (built-in MacBook display)
 local function getNotchScreen()
   local screens = hs.screen.allScreens()
@@ -312,10 +316,6 @@ end
 function M.init()
   log:i("Initializing notch hider module")
 
-  -- Load hotkey configuration
-  local hotkeys = require("config.hotkeys")
-  local hotkey = require("hs.hotkey")
-
   -- Set up display change watcher
   if screenWatcher then
     screenWatcher:stop()
@@ -325,20 +325,9 @@ function M.init()
   screenWatcher:start()
 
   -- Set up toggle hotkey
-  if hotkeys.hotkeys.notch_hider and hotkeys.hotkeys.notch_hider.toggle then
-    local hotkeyConfig = hotkeys.hotkeys.notch_hider.toggle
-    -- hotkey.bind expects modifiers as first argument, key as second
-    local modifiers = {}
-    local key = nil
-
-    for i, v in ipairs(hotkeyConfig) do
-      if i < #hotkeyConfig then
-        table.insert(modifiers, v)
-      else
-        key = v
-      end
-    end
-
+  local hotkeyConfig = hotkey_utils.getSpec("notch_hider.toggle", DEFAULT_HOTKEYS.toggle)
+  local modifiers, key = hotkey_utils.parseHotkey(hotkeyConfig)
+  if key then
     hotkey_utils.bind(modifiers, key, {
       module = MODULE_NAME,
       id = "toggle",
@@ -350,18 +339,7 @@ function M.init()
       end
     })
   else
-    log:e("Notch hider hotkey configuration not found - using fallback")
-    -- Try to register with hardcoded keybinding as fallback
-    hotkey_utils.bind({"ctrl", "alt"}, "N", {
-      module = MODULE_NAME,
-      id = "toggle_fallback",
-      description = "Toggle Notch Hider (Fallback)",
-      toast = false,
-      pressed = function()
-        log:i("Fallback notch hider hotkey triggered!")
-        M.toggle()
-      end
-    })
+    log:e("Notch hider hotkey configuration is invalid; skipping hotkey bind")
   end
 
   -- Auto-enable if configured

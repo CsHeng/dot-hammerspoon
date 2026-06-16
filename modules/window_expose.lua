@@ -9,6 +9,12 @@ local log = logger.getLogger(MODULE_NAME)
 
 local M = {}
 
+local DEFAULT_HOTKEYS = {
+    system = {
+        expose = {"alt", "tab"}
+    }
+}
+
 local session = {
     active = false,
     windows = {},
@@ -26,10 +32,6 @@ local initialized = false
 local windowFilter = hs.window.filter.new():setDefaultFilter({})
 windowFilter:setCurrentSpace(true)
 windowFilter:setSortOrder(hs.window.filter.sortByFocusedLast)
-
-local function getHotkeyConfig(path)
-    return config.get("hotkeys." .. path)
-end
 
 local function cloneTable(tbl)
     local copy = {}
@@ -715,7 +717,7 @@ local function configureHotkeys()
     end
     session.hotkeys = {}
 
-    local exposeHotkey = getHotkeyConfig("system.expose") or {"alt", "tab"}
+    local exposeHotkey = hotkey_utils.getSpec("system.expose", DEFAULT_HOTKEYS.system.expose)
 
     if #exposeHotkey < 1 then
         log.e("Invalid hotkey configuration for system.expose")

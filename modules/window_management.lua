@@ -13,10 +13,21 @@ local MODULE_NAME = "window_management"
 
 local M = {}
 
--- Get configuration values
-local function getHotkey(path)
-    return config.get("hotkeys." .. path)
-end
+local DEFAULT_HOTKEYS = {
+    window = {
+        left = {"ctrl", "alt", "left"},
+        right = {"ctrl", "alt", "right"},
+        up = {"ctrl", "alt", "up"},
+        down = {"ctrl", "alt", "down"},
+        quarter_left = {"ctrl", "alt", "shift", "left"},
+        quarter_right = {"ctrl", "alt", "shift", "right"},
+        quarter_up = {"ctrl", "alt", "shift", "up"},
+        quarter_down = {"ctrl", "alt", "shift", "down"},
+        maximize = {"ctrl", "alt", "return"},
+        center = {"ctrl", "alt", "c"},
+        original = {"ctrl", "alt", "o"},
+    }
+}
 
 local function getVisualConfig(path)
     return config.get("visual." .. path)
@@ -51,10 +62,9 @@ end
 
 -- Setup half screen positioning hotkeys
 function M.setupHalfScreenHotkeys()
-    local hyper = getHotkey("window.hyper") or {"ctrl", "alt"}
-
     -- Basic half positions without toast overlays for responsiveness
-    hotkey_utils.bind(hyper, "left", {
+    local leftHotkey = hotkey_utils.getSpec("window.left", DEFAULT_HOTKEYS.window.left)
+    hotkey_utils.bind(leftHotkey, {
         module = MODULE_NAME,
         id = "half_left",
         description = "Move Left Half",
@@ -64,7 +74,8 @@ function M.setupHalfScreenHotkeys()
         end
     })
 
-    hotkey_utils.bind(hyper, "right", {
+    local rightHotkey = hotkey_utils.getSpec("window.right", DEFAULT_HOTKEYS.window.right)
+    hotkey_utils.bind(rightHotkey, {
         module = MODULE_NAME,
         id = "half_right",
         description = "Move Right Half",
@@ -74,7 +85,8 @@ function M.setupHalfScreenHotkeys()
         end
     })
 
-    hotkey_utils.bind(hyper, "up", {
+    local upHotkey = hotkey_utils.getSpec("window.up", DEFAULT_HOTKEYS.window.up)
+    hotkey_utils.bind(upHotkey, {
         module = MODULE_NAME,
         id = "half_top",
         description = "Move Top Half",
@@ -84,7 +96,8 @@ function M.setupHalfScreenHotkeys()
         end
     })
 
-    hotkey_utils.bind(hyper, "down", {
+    local downHotkey = hotkey_utils.getSpec("window.down", DEFAULT_HOTKEYS.window.down)
+    hotkey_utils.bind(downHotkey, {
         module = MODULE_NAME,
         id = "half_bottom",
         description = "Move Bottom Half",
@@ -97,10 +110,12 @@ end
 
 -- Setup quarter screen positioning hotkeys
 function M.setupQuarterScreenHotkeys()
-    local hyper_shift = getHotkey("window.hyper_shift") or {"ctrl", "alt", "shift"}
-
     -- Quarter positions with contextual movement
-    hotkey_utils.bind(hyper_shift, "left", {
+    local quarterLeftHotkey = hotkey_utils.getSpec(
+        "window.quarter_left",
+        DEFAULT_HOTKEYS.window.quarter_left
+    )
+    hotkey_utils.bind(quarterLeftHotkey, {
         module = MODULE_NAME,
         id = "quarter_left",
         description = "Move Left Quarter",
@@ -110,7 +125,11 @@ function M.setupQuarterScreenHotkeys()
         end
     })
 
-    hotkey_utils.bind(hyper_shift, "right", {
+    local quarterRightHotkey = hotkey_utils.getSpec(
+        "window.quarter_right",
+        DEFAULT_HOTKEYS.window.quarter_right
+    )
+    hotkey_utils.bind(quarterRightHotkey, {
         module = MODULE_NAME,
         id = "quarter_right",
         description = "Move Right Quarter",
@@ -120,7 +139,11 @@ function M.setupQuarterScreenHotkeys()
         end
     })
 
-    hotkey_utils.bind(hyper_shift, "up", {
+    local quarterUpHotkey = hotkey_utils.getSpec(
+        "window.quarter_up",
+        DEFAULT_HOTKEYS.window.quarter_up
+    )
+    hotkey_utils.bind(quarterUpHotkey, {
         module = MODULE_NAME,
         id = "quarter_up",
         description = "Move Top Quarter",
@@ -130,7 +153,11 @@ function M.setupQuarterScreenHotkeys()
         end
     })
 
-    hotkey_utils.bind(hyper_shift, "down", {
+    local quarterDownHotkey = hotkey_utils.getSpec(
+        "window.quarter_down",
+        DEFAULT_HOTKEYS.window.quarter_down
+    )
+    hotkey_utils.bind(quarterDownHotkey, {
         module = MODULE_NAME,
         id = "quarter_down",
         description = "Move Bottom Quarter",
@@ -143,10 +170,9 @@ end
 
 -- Setup special positioning hotkeys
 function M.setupSpecialPositioningHotkeys()
-    local hyper = getHotkey("window.hyper") or {"ctrl", "alt"}
-
     -- Maximize, center, original
-    hotkey_utils.bind(hyper, "return", {
+    local maximizeHotkey = hotkey_utils.getSpec("window.maximize", DEFAULT_HOTKEYS.window.maximize)
+    hotkey_utils.bind(maximizeHotkey, {
         module = MODULE_NAME,
         id = "maximize",
         description = "Maximize Window",
@@ -156,7 +182,8 @@ function M.setupSpecialPositioningHotkeys()
         end
     })
 
-    hotkey_utils.bind(hyper, "c", {
+    local centerHotkey = hotkey_utils.getSpec("window.center", DEFAULT_HOTKEYS.window.center)
+    hotkey_utils.bind(centerHotkey, {
         module = MODULE_NAME,
         id = "center",
         description = "Center Window",
@@ -166,7 +193,8 @@ function M.setupSpecialPositioningHotkeys()
         end
     })
 
-    hotkey_utils.bind(hyper, "o", {
+    local originalHotkey = hotkey_utils.getSpec("window.original", DEFAULT_HOTKEYS.window.original)
+    hotkey_utils.bind(originalHotkey, {
         module = MODULE_NAME,
         id = "restore_original",
         description = "Restore Original Window",
@@ -217,9 +245,11 @@ function M.moveWindowQuarter(direction)
     -- Determine current quarter position with precise tolerance logic
     local tolerance = 10
     local isLeftSide = math.abs(current_frame.x - screen_frame.x) < tolerance
-    local isRightSide = math.abs(current_frame.x - (screen_frame.x + screen_frame.w / 2)) < tolerance
+    local isRightSide = math.abs(current_frame.x - (screen_frame.x + screen_frame.w / 2))
+        < tolerance
     local isTopSide = math.abs(current_frame.y - screen_frame.y) < tolerance
-    local isBottomSide = math.abs(current_frame.y - (screen_frame.y + screen_frame.h / 2)) < tolerance
+    local isBottomSide = math.abs(current_frame.y - (screen_frame.y + screen_frame.h / 2))
+        < tolerance
 
     -- Contextual quarter movement logic - create frame directly
     local new_frame = {}

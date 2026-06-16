@@ -2,7 +2,6 @@
 -- Alternative implementation that uses hs.spaces to change Mission Control spaces
 
 local logger = require("core.logger")
-local config = require("core.config_loader")
 local app_utils = require("utils.app_utils")
 local hotkey_utils = require("utils.hotkey_utils")
 
@@ -14,16 +13,24 @@ local MODULE_NAME = "mouse_management_spaces"
 
 local M = {}
 
+local DEFAULT_HOTKEYS = {
+    mouse = {
+        modifier = {"fn", "ctrl"},
+        speed_up = {"ctrl", "cmd", "alt", "="},
+        speed_down = {"ctrl", "cmd", "alt", "-"},
+        toggle_acceleration = {"ctrl", "cmd", "alt", "\\"},
+    },
+    protection = {
+        paste_defeat = {"cmd", "alt", "V"}
+    }
+}
+
 -- Global taps
 local scroll_flip_tap = nil
 local mouse_button_tap = nil
 local consumed_mouse_buttons = {}
 
 -- Helpers --------------------------------------------------------------------
-
-local function getHotkeyConfig(path)
-    return config.get("hotkeys." .. path)
-end
 
 local function describeModifiers(mods)
     if type(mods) ~= "table" then
@@ -41,7 +48,7 @@ local function spacesAvailable()
 end
 
 local function sendFallbackKeystroke(delta)
-    local modifiers = getHotkeyConfig("mouse.modifier") or {"fn", "ctrl"}
+    local modifiers = hotkey_utils.getSpec("mouse.modifier", DEFAULT_HOTKEYS.mouse.modifier)
     local key = delta > 0 and "right" or "left"
     hs.eventtap.keyStroke(modifiers, key, 0)
     log.d(string.format("Fallback keystroke sent: %s+%s", describeModifiers(modifiers), key))
@@ -103,7 +110,7 @@ local function handleMiddleClick()
         return false
     end
 
-    local modifiers = getHotkeyConfig("mouse.modifier") or {"fn", "ctrl"}
+    local modifiers = hotkey_utils.getSpec("mouse.modifier", DEFAULT_HOTKEYS.mouse.modifier)
     hs.eventtap.keyStroke(modifiers, "up", 0)
     log.d(string.format("Trigger Mission Control via %s+up", describeModifiers(modifiers)))
     return true
@@ -133,7 +140,7 @@ end
 function M.setupMouseButtons()
     log.i("Setting up mouse button bindings (spaces variant)")
 
-    local fallback_modifier = getHotkeyConfig("mouse.modifier") or {"fn", "ctrl"}
+    local fallback_modifier = hotkey_utils.getSpec("mouse.modifier", DEFAULT_HOTKEYS.mouse.modifier)
     local modifier_label = describeModifiers(fallback_modifier)
     local shortcut_prefix = modifier_label ~= "" and (modifier_label .. "+") or ""
     log.i(string.format("Mouse button 2 -> %sup (Mission Control fallback)", shortcut_prefix))
@@ -177,7 +184,7 @@ function M.setupMouseButtons()
 end
 
 function M.setupMouseHotkeys()
-    hotkey_utils.bind({"ctrl", "cmd", "alt"}, "=", {
+    hotkey_utils.bind(hotkey_utils.getSpec("mouse.speed_up", DEFAULT_HOTKEYS.mouse.speed_up), {
         module = MODULE_NAME,
         id = "speed_up",
         description = "Mouse Speed Up",
@@ -192,7 +199,7 @@ function M.setupMouseHotkeys()
         end,
     })
 
-    hotkey_utils.bind({"ctrl", "cmd", "alt"}, "-", {
+    hotkey_utils.bind(hotkey_utils.getSpec("mouse.speed_down", DEFAULT_HOTKEYS.mouse.speed_down), {
         module = MODULE_NAME,
         id = "speed_down",
         description = "Mouse Speed Down",
@@ -207,7 +214,7 @@ function M.setupMouseHotkeys()
         end,
     })
 
-    hotkey_utils.bind({"ctrl", "cmd", "alt"}, "\\", {
+    hotkey_utils.bind(hotkey_utils.getSpec("mouse.toggle_acceleration", DEFAULT_HOTKEYS.mouse.toggle_acceleration), {
         module = MODULE_NAME,
         id = "toggle_acceleration",
         description = "Toggle Mouse Acceleration",
@@ -227,7 +234,7 @@ function M.setupMouseHotkeys()
 end
 
 function M.setupPasteDefeat()
-    local paste_hotkey = getHotkeyConfig("protection.paste_defeat") or {"cmd", "alt", "V"}
+    local paste_hotkey = hotkey_utils.getSpec("protection.paste_defeat", DEFAULT_HOTKEYS.protection.paste_defeat)
 
     local mods, key = hotkey_utils.parseHotkey(paste_hotkey)
     if not key then

@@ -11,32 +11,7 @@ local config = {}
 
 -- Default configurations
 local defaults = {
-    hotkeys = {
-        system_reload = {"ctrl", "cmd", "alt", "R"},
-        system_console = {"ctrl", "cmd", "alt", "H"},
-        system_expose = {"ctrl", "cmd", "tab"},
-
-        window_hyper = {"ctrl", "alt"},
-        window_hyper_shift = {"ctrl", "alt", "shift"},
-        window_maximize = {"ctrl", "alt", "return"},
-        window_center = {"ctrl", "alt", "c"},
-        window_original = {"ctrl", "alt", "o"},
-
-        launcher_modifier = {"cmd", "alt"},
-        media_modifier = {"ctrl", "cmd", "alt"},
-        fuck_modifier = {"ctrl", "cmd", "alt"},
-
-        keycastr_toggle = {"ctrl", "cmd", "alt", "k"},
-        keycastr_click_circle = {"ctrl", "cmd", "alt", "c"},
-        keycastr_continuous = {"ctrl", "cmd", "alt", "i"},
-
-        mouse = {
-            modifier = {"fn", "ctrl"}
-        },
-
-        cmd_q_protection = {"cmd", "q"},
-        paste_defeat = {"cmd", "alt", "V"},
-    },
+    hotkeys = {},
 
     mouse = {
         management_module = "modules.mouse_management"
@@ -163,28 +138,9 @@ local defaults = {
     },
 
     applications = {
-        launcher_apps = {
-            {modifier = {"cmd", "alt"}, key = 'C', appname = 'Cursor', bundleid = 'com.todesktop.230313mzl4w4u92'},
-            {modifier = {"cmd", "alt"}, key = 'Q', appname = 'QQ', bundleid = 'com.tencent.qq'},
-            {modifier = {"cmd", "alt"}, key = 'W', appname = 'WeChat', bundleid = 'com.tencent.xinWeChat'},
-            {modifier = {"cmd", "alt"}, key = 'D', appname = 'DingTalk', bundleid = 'com.alibaba.DingTalk'},
-            {modifier = {"cmd", "alt"}, key = 'G', appname = 'Google Chrome', bundleid = 'com.google.Chrome'},
-            {modifier = {"cmd", "alt"}, key = 'F', appname = 'Finder', bundleid = 'com.apple.Finder'},
-            {modifier = {"cmd", "alt"}, key = 'H', appname = 'Hammerspoon', bundleid = 'org.hammerspoon.Hammerspoon'},
-            {modifier = {}, key = 'F10', appname = 'Ghostty', bundleid = 'com.mitchellh.ghostty'},
-        },
-
-        media_controls = {
-            {modifier = {"ctrl", "cmd", "alt"}, key = 'left', action = 'PREVIOUS'},
-            {modifier = {"ctrl", "cmd", "alt"}, key = 'right', action = 'NEXT'},
-            {modifier = {"ctrl", "cmd", "alt"}, key = 'space', action = 'PLAY'},
-            {modifier = {"ctrl", "cmd", "alt"}, key = 'up', action = 'SOUND_UP'},
-            {modifier = {"ctrl", "cmd", "alt"}, key = 'down', action = 'SOUND_DOWN'},
-        },
-
-        problematic_apps = {
-            -- Default: {modifier = {"ctrl", "cmd", "alt"}, key = 'X', appname = 'App Name', bundleid = 'com.bundle.id', restart_delay = 0},
-        }
+        launcher_apps = {},
+        media_controls = {},
+        problematic_apps = {}
     }
 }
 
@@ -292,42 +248,36 @@ end
 function M.validate()
     local issues = {}
 
-    -- Validate hotkey configurations
-    local hotkeys = M.get("hotkeys", {})
-    for name, key_combo in pairs(hotkeys) do
-        if type(key_combo) ~= "table" then
-            table.insert(issues, string.format("Invalid hotkey configuration: %s", name))
-        elseif #key_combo == 0 then
-            -- Skip configuration sections (they're valid)
-            -- Only validate actual hotkey combinations (tables with modifier keys)
-            local has_hotkeys = false
-            for _, value in pairs(key_combo) do
-                if type(value) == "table" and #value > 0 then
-                    has_hotkeys = true
-                    break
-                end
-            end
+    -- Validate hotkey configurations. Empty section tables are valid because
+    -- modules own fallback defaults when a user-level binding is absent.
+    local function validateHotkeyNode(path, node)
+        if type(node) ~= "table" then
+            table.insert(issues, string.format("Invalid hotkey configuration: %s", path))
+            return
+        end
 
-            if not has_hotkeys and not (name == "modifier" or name:match("%.modifier$")) then
-                table.insert(issues, string.format("Invalid hotkey configuration: %s", name))
-            end
+        if #node > 0 then
+            return
+        end
+
+        for key, value in pairs(node) do
+            validateHotkeyNode(path .. "." .. tostring(key), value)
         end
     end
+
+    validateHotkeyNode("hotkeys", M.get("hotkeys", {}))
 
     -- Validate application configurations
     local apps = M.get("applications", {})
     for category, app_list in pairs(apps) do
         if type(app_list) == "table" then
             for i, app in ipairs(app_list) do
-                -- Check for required fields based on category
                 if category == "media_controls" then
-                    -- media_controls entries have 'action' instead of 'appname'
-                    if not app.key or not app.action then
+                    if not app.id or not app.action then
                         table.insert(issues, string.format("Invalid app configuration in %s at index %d", category, i))
                     end
                 else
-                    -- Regular app entries need 'key' and 'appname'
-                    if not app.key or not app.appname then
+                    if not app.id or not app.appname then
                         table.insert(issues, string.format("Invalid app configuration in %s at index %d", category, i))
                     end
                 end

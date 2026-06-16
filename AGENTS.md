@@ -17,8 +17,10 @@ For project overview, hotkey reference, and setup instructions, see [README.md](
 ## Hotkey Management
 
 - All hotkeys use `utils/hotkey_utils.lua` for standardized binding
+- User-editable hotkey combinations live in `config/hotkeys.lua`
+- Feature modules keep local fallback defaults for their own bindings
 - Configurable toast notifications for hotkey triggers
-- Module-specific announcement preferences via `hotkeys.announcements.modules`
+- Module-specific announcement preferences via `hotkeys_announcements.modules`
 
 ## Mouse Button Boundary
 
@@ -38,9 +40,11 @@ For project overview, hotkey reference, and setup instructions, see [README.md](
 
 ## Working with This Codebase
 
-- Hotkeys: edit `config/hotkeys.lua`
+- Hotkey combinations: only edit `config/hotkeys.lua`
 - Applications: edit `config/applications.lua`
 - Defaults and checks: edit `core/config_loader.lua`
+- Lua formatting: use `.stylua.toml`; keep repo-wide formatting-only changes separate from behavior changes unless explicitly requested.
+- Hotkey bindings: use expanded `hotkey_utils.bind(spec, { ... })` option-table blocks. Do not hide binding metadata behind positional wrapper helpers.
 - Module status: use `require("core.init_system").getModuleStatus()`
 - Debug console: use `hs.debugHammerspoon.status()`
 - For behavior, hotkey, notification, mouse, display, or docs/code-drift changes, use the repo-local Hammerspoon Runtime Verify guide before editing.
@@ -56,6 +60,8 @@ For project overview, hotkey reference, and setup instructions, see [README.md](
 - Keep human-oriented overview and hotkey reference in `README.md`.
 - Keep AI-specific operating rules and constraints in `AGENTS.md`.
 - Keep `CLAUDE.md` as a symlink to `AGENTS.md`.
+- Treat root `README.md`, root `AGENTS.md`, and `docs/modules/*.md` as stable truth roots.
+- Treat `docs/plans/` as stage artifacts retained for history; it is excluded from default docs search by `docs/.ignore`.
 - Update module docs in `docs/modules/`.
 - Add/update PlantUML diagrams in `docs/diagrams/`.
 - Keep `docs/SystemArchitecture.md` in sync with architectural changes

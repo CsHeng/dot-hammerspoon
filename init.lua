@@ -2,9 +2,18 @@
 -- Working version with modular architecture
 
 local hotkey_utils = require("utils.hotkey_utils")
+local config_loader = require("core.config_loader")
+
+local DEFAULT_HOTKEYS = {
+    system = {
+        reload = {"ctrl", "cmd", "alt", "R"},
+        console = {"ctrl", "cmd", "alt", "H"},
+        expose = {"alt", "tab"},
+    }
+}
 
 -- Essential hotkeys (always available)
-hotkey_utils.bind({"ctrl", "cmd", "alt"}, "R", {
+hotkey_utils.bind(hotkey_utils.getSpec("system.reload", DEFAULT_HOTKEYS.system.reload), {
     module = "system",
     id = "reload",
     description = "Reload Hammerspoon configuration",
@@ -14,7 +23,7 @@ hotkey_utils.bind({"ctrl", "cmd", "alt"}, "R", {
     end
 })
 
-hotkey_utils.bind({"ctrl", "cmd", "alt"}, "H", {
+hotkey_utils.bind(hotkey_utils.getSpec("system.console", DEFAULT_HOTKEYS.system.console), {
     module = "system",
     id = "console",
     description = "Open Hammerspoon console",
@@ -52,7 +61,6 @@ local function loadModularSystem()
     end
 
     -- Determine which mouse management module to load (allows easy swapping)
-    local config_loader = require("core.config_loader")
     local mouse_module_name = config_loader.get("mouse.management_module", "modules.mouse_management")
 
     -- Load feature modules (excluding expose for lazy loading)
@@ -161,8 +169,7 @@ local function ensureWindowSwitcher(stepDirection)
     return true
 end
 
-local config_loader = require("core.config_loader")
-local exposeHotkey = config_loader.get("hotkeys.system.expose", {"alt", "tab"})
+local exposeHotkey = hotkey_utils.getSpec("system.expose", DEFAULT_HOTKEYS.system.expose)
 local baseMods, exposeKey = splitHotkey(exposeHotkey)
 
 if baseMods and exposeKey then

@@ -44,12 +44,6 @@ config.display_layout = {
         }
     },
 
-    -- Hotkeys
-    hotkeys = {
-        repair_display_layout  = {"ctrl", "cmd", "alt", "L"},
-        toggle_second_external = {"ctrl", "cmd", "alt", "D"},
-    },
-
     -- Automatic repair (wake/unlock/screen topology change)
     auto_repair = {
         enabled = true,

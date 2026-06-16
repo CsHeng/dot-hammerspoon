@@ -13,10 +13,24 @@ local brightness = hs.brightness
 
 local M = {}
 
--- Get configuration values
-local function getHotkeyConfig(path)
-    return config.get("hotkeys." .. path)
-end
+local DEFAULT_HOTKEYS = {
+    media = {
+        controls = {
+            previous = {"ctrl", "cmd", "alt", "left"},
+            next = {"ctrl", "cmd", "alt", "right"},
+            play = {"ctrl", "cmd", "alt", "space"},
+            sound_up = {"ctrl", "cmd", "alt", "up"},
+            sound_down = {"ctrl", "cmd", "alt", "down"},
+        },
+        system = {
+            mute = {"ctrl", "cmd", "alt", "m"},
+            brightness_down = {"ctrl", "cmd", "alt", "["},
+            brightness_up = {"ctrl", "cmd", "alt", "]"},
+            keyboard_backlight_down = {"ctrl", "cmd", "alt", ";"},
+            keyboard_backlight_up = {"ctrl", "cmd", "alt", "'"},
+        }
+    }
+}
 
 local function getAppConfig(path)
     return config.get("applications." .. path)
@@ -45,13 +59,18 @@ function M.setupMediaHotkeys()
     log.i(string.format("Setting up %d media control hotkeys", #media_controls))
 
     hs.fnutils.each(media_controls, function(entry)
-        if entry.key and entry.action then
+        if entry.id and entry.action then
+            local hotkey_spec = hotkey_utils.getSpecById("media.controls", entry.id, DEFAULT_HOTKEYS.media.controls)
+            if not hotkey_spec then
+                log.w(string.format("Skipping media control '%s': missing hotkey id '%s'", entry.action, entry.id))
+                return
+            end
+
             local desc = entry.description or string.format("Media: %s", entry.action)
-            local modifiers = entry.modifier or getHotkeyConfig("media.modifier") or {"ctrl", "cmd", "alt"}
             local action_id = string.lower(tostring(entry.action or "action"))
             action_id = action_id:gsub("[^%w]+", "_")
 
-            hotkey_utils.bind(modifiers, entry.key, {
+            hotkey_utils.bind(hotkey_spec, {
                 module = MODULE_NAME,
                 id = string.format("media_%s", action_id),
                 description = desc,
@@ -66,12 +85,12 @@ end
 
 -- Setup audio device controls
 function M.setupAudioControls()
-    -- Note: Volume up/down are handled by media_controls configuration
+    -- Note: Volume up/down are handled by media.controls configuration
     -- to avoid duplicate hotkey registration
     -- Only setup mute toggle here
 
     -- Mute toggle
-    hotkey_utils.bind({"ctrl", "cmd", "alt"}, "m", {
+    hotkey_utils.bind(hotkey_utils.getSpec("media.system.mute", DEFAULT_HOTKEYS.media.system.mute), {
         module = MODULE_NAME,
         id = "audio_toggle_mute",
         description = "Audio: Toggle Mute",
@@ -87,7 +106,7 @@ end
 -- Setup system controls
 function M.setupSystemControls()
     -- Brightness controls (if supported)
-    hotkey_utils.bind({"ctrl", "cmd", "alt"}, "[", {
+    hotkey_utils.bind(hotkey_utils.getSpec("media.system.brightness_down", DEFAULT_HOTKEYS.media.system.brightness_down), {
         module = MODULE_NAME,
         id = "brightness_down",
         description = "Brightness Down",
@@ -97,7 +116,7 @@ function M.setupSystemControls()
         end
     })
 
-    hotkey_utils.bind({"ctrl", "cmd", "alt"}, "]", {
+    hotkey_utils.bind(hotkey_utils.getSpec("media.system.brightness_up", DEFAULT_HOTKEYS.media.system.brightness_up), {
         module = MODULE_NAME,
         id = "brightness_up",
         description = "Brightness Up",
@@ -108,7 +127,7 @@ function M.setupSystemControls()
     })
 
     -- Keyboard backlight (if supported)
-    hotkey_utils.bind({"ctrl", "cmd", "alt"}, ";", {
+    hotkey_utils.bind(hotkey_utils.getSpec("media.system.keyboard_backlight_down", DEFAULT_HOTKEYS.media.system.keyboard_backlight_down), {
         module = MODULE_NAME,
         id = "keyboard_backlight_down",
         description = "Keyboard Backlight Down",
@@ -118,7 +137,7 @@ function M.setupSystemControls()
         end
     })
 
-    hotkey_utils.bind({"ctrl", "cmd", "alt"}, "'", {
+    hotkey_utils.bind(hotkey_utils.getSpec("media.system.keyboard_backlight_up", DEFAULT_HOTKEYS.media.system.keyboard_backlight_up), {
         module = MODULE_NAME,
         id = "keyboard_backlight_up",
         description = "Keyboard Backlight Up",

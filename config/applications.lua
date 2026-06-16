@@ -1,37 +1,35 @@
 -- Application configuration for Hammerspoon
--- All application definitions and launch settings are centralized here
+-- Application metadata lives here; key combinations are edited only in config/hotkeys.lua.
 
 local config = {}
 
--- Launcher applications with their key bindings
 config.applications = {
     launcher_apps = {
-        -- {modifier = {"cmd", "alt"}, key = 'C', appname = 'Cursor', bundleid = 'com.todesktop.230313mzl4w4u92'},
-        {modifier = {"cmd", "alt"}, key = 'C', appname = 'Visual Studio Code', bundleid = 'com.microsoft.VSCode'},
-        {modifier = {"cmd", "alt"}, key = 'Q', appname = 'QQ', bundleid = 'com.tencent.qq'},
-        {modifier = {"cmd", "alt"}, key = 'W', appname = 'WeChat', bundleid = 'com.tencent.xinWeChat'},
-        {modifier = {"cmd", "alt"}, key = 'D', appname = 'DingTalk', bundleid = 'com.alibaba.DingTalk'},
-        {modifier = {"cmd", "alt"}, key = 'G', appname = 'Google Chrome', bundleid = 'com.google.Chrome'},
-        {modifier = {"cmd", "alt"}, key = 'F', appname = 'Finder', bundleid = 'com.apple.Finder'},
-        {modifier = {"cmd", "alt"}, key = 'H', appname = 'Hammerspoon', bundleid = 'org.hammerspoon.Hammerspoon'},
-        -- {modifier = {}, key = 'F10', appname = 'Ghostty', bundleid = 'com.mitchellh.ghostty'},
-        -- {modifier = {}, key = 'F10', appname = 'kitty', bundleid = 'net.kovidgoyal.kitty'},
-        {modifier = {}, key = 'F10', appname = 'WezTerm', bundleid = 'com.github.wez.wezterm'},
+        -- {id = 'cursor', appname = 'Cursor', bundleid = 'com.todesktop.230313mzl4w4u92'},
+        {id = 'vscode', appname = 'Visual Studio Code', bundleid = 'com.microsoft.VSCode'},
+        {id = 'qq', appname = 'QQ', bundleid = 'com.tencent.qq'},
+        {id = 'wechat', appname = 'WeChat', bundleid = 'com.tencent.xinWeChat'},
+        {id = 'dingtalk', appname = 'DingTalk', bundleid = 'com.alibaba.DingTalk'},
+        {id = 'chrome', appname = 'Google Chrome', bundleid = 'com.google.Chrome'},
+        {id = 'finder', appname = 'Finder', bundleid = 'com.apple.Finder'},
+        {id = 'hammerspoon', appname = 'Hammerspoon', bundleid = 'org.hammerspoon.Hammerspoon'},
+        -- {id = 'ghostty', appname = 'Ghostty', bundleid = 'com.mitchellh.ghostty'},
+        -- {id = 'kitty', appname = 'kitty', bundleid = 'net.kovidgoyal.kitty'},
+        {id = 'wezterm', appname = 'WezTerm', bundleid = 'com.github.wez.wezterm'},
     },
 
-    -- Media control bindings
     media_controls = {
-        {modifier = {"ctrl", "cmd", "alt"}, key = 'left', action = 'PREVIOUS'},
-        {modifier = {"ctrl", "cmd", "alt"}, key = 'right', action = 'NEXT'},
-        {modifier = {"ctrl", "cmd", "alt"}, key = 'space', action = 'PLAY'},
-        {modifier = {"ctrl", "cmd", "alt"}, key = 'up', action = 'SOUND_UP'},
-        {modifier = {"ctrl", "cmd", "alt"}, key = 'down', action = 'SOUND_DOWN'},
+        {id = 'previous', action = 'PREVIOUS'},
+        {id = 'next', action = 'NEXT'},
+        {id = 'play', action = 'PLAY'},
+        {id = 'sound_up', action = 'SOUND_UP'},
+        {id = 'sound_down', action = 'SOUND_DOWN'},
     },
 
     -- Applications that may need restarting
     problematic_apps = {
         -- Example:
-        -- {modifier = {"ctrl", "cmd", "alt"}, key = 'X', appname = 'App Name', bundleid = 'com.bundle.id', restart_delay = 0},
+        -- {id = 'app_name', appname = 'App Name', bundleid = 'com.bundle.id', restart_delay = 0},
     }
 }
 

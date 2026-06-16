@@ -10,6 +10,14 @@ local MODULE_NAME = "keystroke_visualizer"
 
 local M = {}
 
+local DEFAULT_HOTKEYS = {
+    keycastr = {
+        toggle = {"ctrl", "cmd", "alt", "k"},
+        click_circle = {"ctrl", "cmd", "alt", "c"},
+        continuous = {"ctrl", "cmd", "alt", "i"},
+    }
+}
+
 -- State variables
 local keystroke_drawings = {}
 local drag_initial = nil
@@ -28,10 +36,6 @@ local cleanup_timer = nil
 -- Get configuration values
 local function getKeyCastrConfig(path)
     return config.get("keycastr." .. path)
-end
-
-local function getHotkeyConfig(path)
-    return config.get("hotkeys." .. path)
 end
 
 local function stopEventTracking()
@@ -63,9 +67,9 @@ end
 
 -- Setup toggle hotkeys
 function M.setupToggleHotkeys()
-    local toggle_key = getHotkeyConfig("keycastr.toggle") or {"ctrl", "cmd", "alt", "k"}
-    local circle_key = getHotkeyConfig("keycastr.click_circle") or {"ctrl", "cmd", "alt", "c"}
-    local continuous_key = getHotkeyConfig("keycastr.continuous") or {"ctrl", "cmd", "alt", "i"}
+    local toggle_key = hotkey_utils.getSpec("keycastr.toggle", DEFAULT_HOTKEYS.keycastr.toggle)
+    local circle_key = hotkey_utils.getSpec("keycastr.click_circle", DEFAULT_HOTKEYS.keycastr.click_circle)
+    local continuous_key = hotkey_utils.getSpec("keycastr.continuous", DEFAULT_HOTKEYS.keycastr.continuous)
 
     hotkey_utils.bind(toggle_key, {
         module = MODULE_NAME,

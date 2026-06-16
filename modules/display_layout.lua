@@ -30,6 +30,11 @@ local TOGGLE_PROFILE_KEYS = {
 
 local M = {}
 
+local DEFAULT_HOTKEYS = {
+    repair_display_layout = {"ctrl", "cmd", "alt", "L"},
+    toggle_second_external = {"ctrl", "cmd", "alt", "D"},
+}
+
 local screen_watcher = nil
 local caffeinate_watcher = nil
 local pending_timer = nil
@@ -699,7 +704,7 @@ function M.init()
     cleanup()
     loadSecondExternalState()
 
-    local repairHotkey = getConfig("hotkeys.repair_display_layout", {"ctrl", "cmd", "alt", "L"})
+    local repairHotkey = hotkey_utils.getSpec("display_layout.repair_display_layout", DEFAULT_HOTKEYS.repair_display_layout)
     local mods, key = hotkey_utils.parseHotkey(repairHotkey)
 
     if key then
@@ -715,10 +720,10 @@ function M.init()
         })
         log.d(string.format("Hotkey bound: %s+%s (repair_display_layout)", table.concat(mods, "+"), key))
     else
-        log.w("display_layout.hotkeys.repair_display_layout is invalid; skipping hotkey bind")
+        log.w("hotkeys.display_layout.repair_display_layout is invalid; skipping hotkey bind")
     end
 
-    local toggleHotkey = getConfig("hotkeys.toggle_second_external", {"ctrl", "cmd", "alt", "D"})
+    local toggleHotkey = hotkey_utils.getSpec("display_layout.toggle_second_external", DEFAULT_HOTKEYS.toggle_second_external)
     local toggleMods, toggleKey = hotkey_utils.parseHotkey(toggleHotkey)
 
     if toggleKey then
@@ -734,7 +739,7 @@ function M.init()
         })
         log.d(string.format("Hotkey bound: %s+%s (toggle_second_external)", table.concat(toggleMods, "+"), toggleKey))
     else
-        log.w("display_layout.hotkeys.toggle_second_external is invalid; skipping hotkey bind")
+        log.w("hotkeys.display_layout.toggle_second_external is invalid; skipping hotkey bind")
     end
 
     local auto = getConfig("auto_repair", {})

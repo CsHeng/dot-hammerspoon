@@ -11,9 +11,9 @@
 - Integrate with application-specific media control entries defined in configuration.
 
 ## Configuration
-- `config/applications.lua` → `media_controls` supplies action/key bindings for playback and volume.
-- `config/hotkeys.media.modifier` defines default modifiers for media actions.
-- Brightness and backlight hotkeys are fixed to the Hyper (`ctrl+cmd+alt`) modifier set in `modules/media_controls.lua`.
+- `config/applications.lua` → `media_controls` supplies action metadata with stable `id` values.
+- `config/hotkeys.lua` → `hotkeys.media.controls.<id>` defines playback and volume key bindings.
+- `config/hotkeys.lua` → `hotkeys.media.system.*` defines mute, brightness, and keyboard-backlight key bindings.
 
 ## Entry Points
 - Implementation: `modules/media_controls.lua`.
@@ -25,5 +25,5 @@
 - Errors (missing audio device, unsupported brightness) are logged as warnings.
 
 ## Maintenance Notes
-- Extend the `media_controls` configuration to add new system actions rather than hardcoding them.
+- Extend `config/applications.lua` and `config/hotkeys.lua` together when adding new media actions.
 - Keep placeholder functions (e.g., mouse speed adjustments) stubbed until a safe implementation is available.

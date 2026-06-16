@@ -59,6 +59,7 @@ accidental double space-switches.
 - System overviews: `docs/SystemArchitecture.md`, `docs/ConfigurationSystem.md`, `docs/ModuleSystem.md`
 - Module and utility summaries: `docs/modules/*.md`
 - Diagrams: system-level in `docs/*.puml`, module-specific in `docs/modules/diagrams/`
+- Stage artifacts: `docs/plans/` is retained for historical planning context but excluded from default docs search by `docs/.ignore`; use `rg --files --no-ignore docs` when historical plans are needed.
 
 Validate PlantUML files with `plantuml --check-syntax <diagram-path>`.
 
@@ -66,46 +67,46 @@ Validate PlantUML files with `plantuml --check-syntax <diagram-path>`.
 
 ### Core System (`core/`)
 
-- **`config_loader.lua`** - Centralized configuration management
-- **`init_system.lua`** - Module registration and dependency management
-- **`logger.lua`** - Centralized logging system
+- `config_loader.lua` - Centralized configuration management
+- `init_system.lua` - Module registration and dependency management
+- `logger.lua` - Centralized logging system
 
 ### Feature Modules (`modules/`)
 
-- **`window_management.lua`** - Magnet-style window positioning
-- **`app_launcher.lua`** - Fast application launching
-- **`media_controls.lua`** - Media and system controls
-- **`display_layout.lua`** - Repair external display layout via `displayplacer` and toggle the supported home/office second external input via `m1ddc`
-- **`mouse_management.lua`** - Mouse and input device management
-- **`wifi_automation.lua`** - Network automation and monitoring
-- **`keystroke_visualizer.lua`** - KeyCastr functionality
-- **`window_expose.lua`** - Window expose (lazy-loaded)
-- **`notch_hider.lua`** - Menu-bar notch masking with canvas overlay and rounded corners
+- `window_management.lua` - Magnet-style window positioning
+- `app_launcher.lua` - Fast application launching
+- `media_controls.lua` - Media and system controls
+- `display_layout.lua` - Repair external display layout via `displayplacer` and toggle the supported home/office second external input via `m1ddc`
+- `mouse_management.lua` - Mouse and input device management
+- `wifi_automation.lua` - Network automation and monitoring
+- `keystroke_visualizer.lua` - KeyCastr functionality
+- `window_expose.lua` - Window expose (lazy-loaded)
+- `notch_hider.lua` - Menu-bar notch masking with canvas overlay and rounded corners
 
 ### Utilities (`utils/`)
 
-- **`app_utils.lua`** - Application management utilities
-- **`display_utils.lua`** - Multi-monitor display utilities
-- **`notification_utils.lua`** - System notification utilities
-- **`window_utils.lua`** - Window manipulation utilities
+- `app_utils.lua` - Application management utilities
+- `display_utils.lua` - Multi-monitor display utilities
+- `notification_utils.lua` - System notification utilities
+- `window_utils.lua` - Window manipulation utilities
 
 ### Configuration (`config/`)
 
-- **`hotkeys.lua`** - Central hotkey definitions
-- **`display_layout.lua`** - Displayplacer profiles for screen layout repair plus supported home/office second external `m1ddc` input toggle
-- **`applications.lua`** - Application configurations
-- **`keycastr.lua`** - KeyCastr settings
-- **`wifi.lua`** - WiFi automation settings
-- **`visual.lua`** - Visual configuration
-- **Announcement policy**: `hotkeys.announcements` toggles module-level toast overlays handled by `utils/hotkey_utils`
+- `hotkeys.lua` - Complete user-editable key binding table; modules keep fallback defaults in code
+- `display_layout.lua` - Displayplacer profiles for screen layout repair plus supported home/office second external `m1ddc` input toggle
+- `applications.lua` - Application metadata; launcher and media key combinations are edited only in `config/hotkeys.lua`
+- `keycastr.lua` - KeyCastr settings
+- `wifi.lua` - WiFi automation settings
+- `visual.lua` - Visual configuration
+- Announcement policy: `hotkeys_announcements` toggles module-level toast overlays handled by `utils/hotkey_utils`
 
 ## Key Features
 
-- **Modular Architecture**: Clean separation of concerns with dependency management
-- **Configuration Management**: Centralized settings with hot reloading
-- **Lazy Loading**: Performance-optimized loading of heavy modules
-- **Cross-Display Support**: Sophisticated multi-monitor window management
-- **Smart Edge Detection**: Intelligent window positioning at screen boundaries
+- Modular Architecture: Clean separation of concerns with dependency management
+- Configuration Management: Centralized settings with hot reloading
+- Lazy Loading: Performance-optimized loading of heavy modules
+- Cross-Display Support: Sophisticated multi-monitor window management
+- Smart Edge Detection: Intelligent window positioning at screen boundaries
 
 ## File Structure
 
@@ -129,7 +130,10 @@ Validate PlantUML files with `plantuml --check-syntax <diagram-path>`.
 
 - Use the logger system for all modules
 - Register modules with the init system
-- Keep configuration in separate config files
+- User-editable hotkey combinations are only edited in `config/hotkeys.lua`; keep module fallback defaults beside the owning module
+- Bind hotkeys with expanded `hotkey_utils.bind(spec, { ... })` option-table blocks so module, id, description, toast, and handlers stay visible
+- Use `.stylua.toml` for Lua formatting; keep repo-wide formatting-only changes separate from behavior changes
+- Keep non-hotkey configuration in the relevant config file
 - Use lazy loading for heavy operations
 - Follow established naming conventions
 

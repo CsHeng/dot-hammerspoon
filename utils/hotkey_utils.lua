@@ -3,6 +3,7 @@
 
 local hotkey = require("hs.hotkey")
 local logger = require("core.logger")
+local config = require("core.config_loader")
 local notification_utils = require("utils.notification_utils")
 
 -- Suppress hs.hotkey's own info-level logs; keep warnings/errors.
@@ -256,6 +257,27 @@ end
 -- ---------------------------------------------------------------------------
 -- Public API
 -- ---------------------------------------------------------------------------
+
+function M.getSpec(path, default)
+    return config.get("hotkeys." .. path, default)
+end
+
+function M.getSpecById(sectionPath, id, defaults)
+    if type(id) ~= "string" or id == "" then
+        return nil
+    end
+
+    local section = M.getSpec(sectionPath, defaults or {})
+    if type(section) == "table" and section[id] ~= nil then
+        return section[id]
+    end
+
+    if type(defaults) == "table" then
+        return defaults[id]
+    end
+
+    return nil
+end
 
 function M.parseHotkey(spec)
     if type(spec) ~= "table" then

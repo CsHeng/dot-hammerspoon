@@ -13,10 +13,24 @@ local MODULE_NAME = "app_launcher"
 
 local M = {}
 
--- Get configuration values
-local function getHotkeyConfig(path)
-    return config.get("hotkeys." .. path)
-end
+local DEFAULT_HOTKEYS = {
+    launcher = {
+        apps = {
+            vscode = {"cmd", "alt", "C"},
+            qq = {"cmd", "alt", "Q"},
+            wechat = {"cmd", "alt", "W"},
+            dingtalk = {"cmd", "alt", "D"},
+            chrome = {"cmd", "alt", "G"},
+            finder = {"cmd", "alt", "F"},
+            hammerspoon = {"cmd", "alt", "H"},
+            wezterm = {"F10"},
+        },
+        restarts = {}
+    },
+    protection = {
+        cmd_q = {"cmd", "q"}
+    }
+}
 
 local function getAppConfig(path)
     return config.get("applications." .. path)
@@ -41,18 +55,21 @@ end
 -- Setup application launching hotkeys
 function M.setupAppHotkeys()
     local launcher_apps = getAppConfig("launcher_apps") or {}
-    local launcher_modifier = getHotkeyConfig("launcher.modifier") or {"cmd", "alt"}
 
     log.i(string.format("Setting up %d application launcher hotkeys", #launcher_apps))
 
     -- Register toggle app hotkeys
     hs.fnutils.each(launcher_apps, function(entry)
-        if entry.key and entry.appname then
+        if entry.id and entry.appname then
+            local hotkey_spec = hotkey_utils.getSpecById("launcher.apps", entry.id, DEFAULT_HOTKEYS.launcher.apps)
+            if not hotkey_spec then
+                log.w(string.format("Skipping launcher app '%s': missing hotkey id '%s'", entry.appname, entry.id))
+                return
+            end
+
             local hotkey_desc = entry.hotkey_desc or string.format("Launch/Toggle %s", entry.appname)
-            local app_key = tostring(entry.appname):gsub("%s+", "_"):gsub("[^%w_%-]", "")
-            local binding_id = entry.id or string.format("launcher_%s", app_key:lower())
-            local modifiers = entry.modifier or launcher_modifier
-            hotkey_utils.bind(modifiers, entry.key, {
+            local binding_id = string.format("launcher_%s", entry.id)
+            hotkey_utils.bind(hotkey_spec, {
                 module = MODULE_NAME,
                 id = binding_id,
                 description = hotkey_desc,
@@ -72,12 +89,17 @@ function M.setupRestartHotkeys()
     log.i(string.format("Setting up %d application restart hotkeys", #problematic_apps))
 
     hs.fnutils.each(problematic_apps, function(entry)
-        if entry.key and entry.appname then
+        if entry.id and entry.appname then
+            local hotkey_spec = hotkey_utils.getSpecById("launcher.restarts", entry.id, DEFAULT_HOTKEYS.launcher.restarts)
+            if not hotkey_spec then
+                log.w(string.format("Skipping restart app '%s': missing hotkey id '%s'", entry.appname, entry.id))
+                return
+            end
+
             local hotkey_desc = string.format("Restart %s", entry.appname)
-            local restart_key = tostring(entry.appname):gsub("%s+", "_"):gsub("[^%w_%-]", "")
-            hotkey_utils.bind(entry.modifier, entry.key, {
+            hotkey_utils.bind(hotkey_spec, {
                 module = MODULE_NAME,
-                id = string.format("restart_%s", restart_key:lower()),
+                id = string.format("restart_%s", entry.id),
                 description = hotkey_desc,
                 toast = false,
                 pressed = function()
@@ -91,7 +113,7 @@ end
 -- Setup protection hotkeys
 function M.setupProtectionHotkeys()
     -- Double-press Cmd + Q to Quit protection
-    local cmdq_hotkey = getHotkeyConfig("protection.cmd_q") or {"cmd", "q"}
+    local cmdq_hotkey = hotkey_utils.getSpec("protection.cmd_q", DEFAULT_HOTKEYS.protection.cmd_q)
     local protection_delay = 0.5 -- seconds
 
     local cmdq_mods, cmdq_key = hotkey_utils.parseHotkey(cmdq_hotkey)

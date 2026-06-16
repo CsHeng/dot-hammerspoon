@@ -17,8 +17,9 @@
   - Otherwise: unhide/unminimise (if needed), activate, and focus/raise the main window.
 
 ## Configuration
-- `config/applications.lua` → `launcher_apps` and `problematic_apps` define key bindings and metadata.
-- `config/hotkeys.lua` → `hotkeys.launcher.modifier` and `hotkeys.app_restart.modifier` provide defaults for entries that omit modifiers.
+- `config/applications.lua` → `launcher_apps` and `problematic_apps` define application metadata with stable `id` values.
+- `config/hotkeys.lua` → `hotkeys.launcher.apps.<id>` and `hotkeys.launcher.restarts.<id>` define key bindings.
+- `config/hotkeys.lua` → `hotkeys.protection.cmd_q` defines Cmd+Q protection.
 - Cmd+Q delay is fixed at 0.5 s in `modules/app_launcher.lua`; adjust here if behaviour needs to change globally.
 
 ## Entry Points
@@ -32,6 +33,6 @@
 - Cmd+Q protection reminder uses `notification_utils.announce` with a dedicated binding id so the prompt can be configured independently of other module toasts.
 
 ## Maintenance Notes
-- Add new launcher targets to `config/applications.lua` rather than modifying module logic.
+- Add new launcher targets to `config/applications.lua` and add matching key bindings to `config/hotkeys.lua`.
 - Bundle IDs are optional but recommended to avoid conflicts between similarly named apps.
 - When introducing new launcher families, prefer extending configuration and reuse existing helper functions.

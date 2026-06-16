@@ -15,10 +15,11 @@
   - `profiles.home`: home (lid closed) dual-external layout.
   - `profiles.home_open`: home (lid open) internal + 2 externals layout (middle external is primary).
   - `auto_repair`: delay/retry policy.
-  - `hotkeys.repair_display_layout`: layout repair hotkey.
-  - `hotkeys.toggle_second_external`: second external input toggle hotkey for supported home/office profiles.
   - `m1ddc.home_second_external_input_toggle`: home second external input command, values, and reconnect delay.
   - `m1ddc.office_second_external_input_toggle`: office second external input command, values, and reconnect delay.
+- `config/hotkeys.lua` controls:
+  - `hotkeys.display_layout.repair_display_layout`: layout repair hotkey.
+  - `hotkeys.display_layout.toggle_second_external`: second external input toggle hotkey for supported home/office profiles.
 
 ## Entry Points
 - Implementation: `modules/display_layout.lua`.

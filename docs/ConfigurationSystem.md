@@ -5,19 +5,20 @@
 - Keeps configuration declarative so feature modules remain stateless and easy to reload.
 
 ## Building Blocks
-- **Core loader**: `core/config_loader.lua` seeds defaults and merges `config/*.lua` overrides.
-- **Module wiring**: `core/init_system.lua` asks the loader which modules to register (e.g., `mouse.management_module`).
-- **Runtime updates**: modules call `config.set` to persist toggles (such as KeyCastr enablement) back into the shared store.
+- Core loader: `core/config_loader.lua` seeds structural defaults and merges `config/*.lua` overrides.
+- Module wiring: `core/init_system.lua` asks the loader which modules to register (e.g., `mouse.management_module`).
+- Runtime updates: modules call `config.set` to persist toggles (such as KeyCastr enablement) back into the shared store.
 
 ## Data Flow
 1. Defaults are cloned into memory during loader initialisation.
-2. Each file listed in the loader (`hotkeys`, `applications`, `keycastr`, `wifi`, `visual`, `mouse`) is required and merged in.
+2. Each file listed in the loader (`hotkeys`, `logging`, `display_layout`, `applications`, `keycastr`, `wifi`, `visual`, `mouse`) is required and merged in.
 3. Validation runs once to flag structural issues without aborting startup.
 4. Modules consume values via `config.get("section.key")`, optionally supplying fallbacks for optional settings.
 
 ## Extending Configuration
 - Add a new config file under `config/` and register it in the loader’s `config_files` list.
 - Document new keys alongside the module that consumes them; prefer nested tables to keep namespaces clear.
+- User-editable key combinations are only edited in `config/hotkeys.lua`; keep module fallback hotkeys beside the owning module.
 - When exposing booleans or enumerations, default them in `core/config_loader.lua` so hot reload works even before user overrides exist.
 
 ## Observability

@@ -1,9 +1,8 @@
 -- Hotkey configuration for Hammerspoon
--- All hotkey definitions are centralized here for easy customization
+-- User-editable key combinations are edited here; modules keep their own fallback defaults.
 
 local config = {}
 
--- System hotkeys
 config.hotkeys = {
     system = {
         reload = {"ctrl", "cmd", "alt", "R"},
@@ -12,19 +11,13 @@ config.hotkeys = {
     },
 
     window = {
-        hyper = {"ctrl", "alt"},
-        hyper_shift = {"ctrl", "alt", "shift"},
         maximize = {"ctrl", "alt", "return"},
         center = {"ctrl", "alt", "c"},
         original = {"ctrl", "alt", "o"},
-
-        -- Arrow keys for positioning
         left = {"ctrl", "alt", "left"},
         right = {"ctrl", "alt", "right"},
         up = {"ctrl", "alt", "up"},
         down = {"ctrl", "alt", "down"},
-
-        -- Quarter positions with shift
         quarter_left = {"ctrl", "alt", "shift", "left"},
         quarter_right = {"ctrl", "alt", "shift", "right"},
         quarter_up = {"ctrl", "alt", "shift", "up"},
@@ -32,24 +25,46 @@ config.hotkeys = {
     },
 
     launcher = {
-        modifier = {"cmd", "alt"}
+        apps = {
+            vscode = {"cmd", "alt", "C"},
+            qq = {"cmd", "alt", "Q"},
+            wechat = {"cmd", "alt", "W"},
+            dingtalk = {"cmd", "alt", "D"},
+            chrome = {"cmd", "alt", "G"},
+            finder = {"cmd", "alt", "F"},
+            hammerspoon = {"cmd", "alt", "H"},
+            wezterm = {"F10"},
+        },
+        restarts = {}
     },
 
     media = {
-        modifier = {"ctrl", "cmd", "alt"},
-        previous = {"ctrl", "cmd", "alt", "left"},
-        next = {"ctrl", "cmd", "alt", "right"},
-        play = {"ctrl", "cmd", "alt", "space"},
-        volume_up = {"ctrl", "cmd", "alt", "up"},
-        volume_down = {"ctrl", "cmd", "alt", "down"}
-    },
-
-    app_restart = {
-        modifier = {"ctrl", "cmd", "alt"}
+        controls = {
+            previous = {"ctrl", "cmd", "alt", "left"},
+            next = {"ctrl", "cmd", "alt", "right"},
+            play = {"ctrl", "cmd", "alt", "space"},
+            sound_up = {"ctrl", "cmd", "alt", "up"},
+            sound_down = {"ctrl", "cmd", "alt", "down"},
+        },
+        system = {
+            mute = {"ctrl", "cmd", "alt", "m"},
+            brightness_down = {"ctrl", "cmd", "alt", "["},
+            brightness_up = {"ctrl", "cmd", "alt", "]"},
+            keyboard_backlight_down = {"ctrl", "cmd", "alt", ";"},
+            keyboard_backlight_up = {"ctrl", "cmd", "alt", "'"},
+        }
     },
 
     mouse = {
-        modifier = {"fn", "ctrl"}
+        modifier = {"fn", "ctrl"},
+        speed_up = {"ctrl", "cmd", "alt", "="},
+        speed_down = {"ctrl", "cmd", "alt", "-"},
+        toggle_acceleration = {"ctrl", "cmd", "alt", "\\"},
+    },
+
+    display_layout = {
+        repair_display_layout = {"ctrl", "cmd", "alt", "L"},
+        toggle_second_external = {"ctrl", "cmd", "alt", "D"},
     },
 
     keycastr = {
