@@ -8,10 +8,10 @@ For project overview, hotkey reference, and setup instructions, see [README.md](
 - `m1ddc` is the monitor-control tool. Use it for DDC features such as input source, brightness, contrast, and volume.
 - Do not treat `m1ddc` as a replacement for `displayplacer`; it does not manage macOS display topology.
 - Do not rely on `displayplacer enabled:false/enabled:true` as a reversible second-monitor toggle. On this setup it is not a stable restore path.
-- `⌃⌘⌥D` toggles the second external display through `m1ddc` for `home`, `home_open`, `office`, `office_open`, `office_typec`, and `office_typec_open`.
-- Home second external `DQ27F165L` (`D0627D9C-EEDB-417D-88ED-C5FE3663710D`): Mac `DisplayPort 1` -> `15`; alternate `HDMI 1` -> `17`.
+- `⌃⌘⌥D` mirrors/unmirrors the second external display and runs a best-effort `m1ddc` input command for `home`, `home_open`, `office`, `office_open`, `office_typec`, and `office_typec_open`.
+- Home second external `DQ27F165L` (`D0627D9C-EEDB-417D-88ED-C5FE3663710D`): Mac `DisplayPort 1` -> `15`; alternate `HDMI 1` -> `17`. The home chain currently goes through a Dell Thunderbolt dock and hardware KVM, so `m1ddc` may return success without physically switching display input; accepted workflow is mirror first, switch away with the hardware KVM, use the second machine, then switch the KVM back.
 - Office second external `DELL P2422H` (`E5AD9F0D-0529-4234-ABF2-4053381A7C58`): Mac `DisplayPort 1` -> `15`; alternate `HDMI 1` -> `17`.
-- Switching to HDMI applies mirror mode via `displayplacer`; switching back restores extended layout from stored `profile_key` before the `m1ddc` input switch.
+- Switching away first applies mirror mode via `displayplacer`, saves non-Mac-input state to suppress auto-repair, then sends the alternate-input command via `m1ddc`; switching back restores extended layout from stored `profile_key` before sending the Mac-input command.
 - `⌃⌘⌥L` repairs layout and, when needed, restores the supported second external to Mac input.
 
 ## Hotkey Management

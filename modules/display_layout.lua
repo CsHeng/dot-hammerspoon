@@ -1,7 +1,7 @@
 -- Display Layout Module for Hammerspoon
 -- Repairs external display ordering + primary display via displayplacer.
--- Office second-external input toggle uses m1ddc because displayplacer cannot
--- reliably soft-disable/enable a display.
+-- Second-external toggles use displayplacer for mirror/extend state and m1ddc
+-- for best-effort input commands; displayplacer cannot reliably soft-disable/enable a display.
 
 local logger = require("core.logger")
 local config = require("core.config_loader")
@@ -463,6 +463,32 @@ local function applyMirrorMode(displayplacerPath, profile)
     return true
 end
 
+local function applyProfileLayout(displayplacerPath, profile, context)
+    if not displayplacerPath then
+        log.w(string.format("%s: displayplacer not found", tostring(context)))
+        return false
+    end
+    if type(profile) ~= "table" or type(profile.screens) ~= "table" then
+        log.w(string.format("%s: profile screens unavailable", tostring(context)))
+        return false
+    end
+
+    local cmd, buildErr = buildDisplayplacerCommand(displayplacerPath, profile.screens)
+    if not cmd then
+        log.w(string.format("%s: failed to build displayplacer command: %s", tostring(context), tostring(buildErr)))
+        return false
+    end
+
+    local output, ok, _, rc = hs.execute(cmd)
+    if not ok then
+        log.w(string.format("%s: displayplacer failed (rc=%s): %s", tostring(context), tostring(rc), tostring(output)))
+        return false
+    end
+
+    log.i(string.format("%s: extended layout applied", tostring(context)))
+    return true
+end
+
 local function applyMatchingProfile(reason)
     if getConfig("enabled", true) ~= true then
         log.d("display_layout module is disabled")
@@ -578,6 +604,12 @@ local function scheduleRepair(reason)
 
     local function attempt()
         attempt_count = attempt_count + 1
+        if not second_external_state.on_mac_input and reason ~= "hotkey" then
+            log.d(string.format("Repair attempt skipped (second external switched away from Mac input, reason=%s)", reason))
+            cancelTimers()
+            return
+        end
+
         log.d(string.format("Repair attempt %d/%d (reason=%s)", attempt_count, max_attempts, reason))
         if repairDisplayLayout(reason) then
             cancelTimers()
@@ -594,9 +626,9 @@ local function scheduleRepair(reason)
     pending_timer = hs.timer.doAfter(delay, attempt)
 end
 
--- Restore second external to Mac input with single-flash strategy:
--- 1. Apply extended layout FIRST (un-mirror while display still shows alt input — invisible)
--- 2. Switch m1ddc input to Mac (single visible flash)
+-- Restore second external to Mac-intent state:
+-- 1. Apply extended layout FIRST.
+-- 2. Send the m1ddc Mac-input command.
 local function restoreSecondExternalToMacInput()
     if second_external_state.on_mac_input then
         return true
@@ -613,32 +645,20 @@ local function restoreSecondExternalToMacInput()
         return false
     end
 
-    -- Restore extended layout before switching input to avoid double flash.
-    -- The Mac still controls the display via DP even when DDC input shows HDMI.
+    -- Restore extended layout before sending the input command to avoid double flash.
+    -- The DDC command is best-effort and may not physically switch through dock/KVM paths.
     local layoutRestored = false
     local displayplacerPath = resolveDisplayplacerPath()
     if displayplacerPath and second_external_state.profile_key then
         local profiles = getConfig("profiles", {})
         local profile = profiles[second_external_state.profile_key]
-        if profile and profile.screens then
-            local cmd = buildDisplayplacerCommand(displayplacerPath, profile.screens)
-            if cmd then
-                log.d("Restoring extended layout before input switch")
-                local output, ok = hs.execute(cmd)
-                if ok then
-                    layoutRestored = true
-                    log.i("Extended layout restored (pre-switch)")
-                else
-                    log.w("Pre-switch layout restore failed: " .. tostring(output))
-                end
-            end
-        end
+        layoutRestored = applyProfileLayout(displayplacerPath, profile, "Pre-switch layout restore")
     end
 
-    log.i("restoreSecondExternalToMacInput: switching second external back to Mac input")
+    log.i("restoreSecondExternalToMacInput: sending Mac input command for second external")
     local ok = runM1ddcSetInput(m1ddcPath, second_external_state, second_external_state.mac_input)
     if not ok then
-        notify("toggle_restore_failed", "Failed to restore second external input", 1.5)
+        notify("toggle_restore_failed", "Failed to send second external restore command", 1.5)
         return false
     end
 
@@ -652,7 +672,7 @@ local function restoreSecondExternalToMacInput()
         end)
     end
 
-    notify("toggle_restored", string.format("Second external: %s", second_external_state.mac_label))
+    notify("toggle_restored", string.format("Second external: extended (%s command sent)", second_external_state.mac_label))
     return true
 end
 
@@ -677,17 +697,29 @@ local function toggleSecondExternal()
         return
     end
 
-    log.i(string.format("toggleSecondExternal: switching second external to %s + mirror", spec.alt_label))
-    local ok = runM1ddcSetInput(m1ddcPath, spec, spec.alt_input)
-    if not ok then
-        notify("toggle_failed", "Failed to switch second external input", 1.5)
+    log.i(string.format("toggleSecondExternal: mirroring second external before sending %s command", spec.alt_label))
+    updateSecondExternalState(spec, false)
+
+    local mirrored = applyMirrorMode(spec.displayplacer_path, spec.profile)
+    if not mirrored then
+        updateSecondExternalState(spec, true)
+        notify("toggle_failed", "Failed to mirror second external before input command", 1.5)
         return
     end
 
-    applyMirrorMode(spec.displayplacer_path, spec.profile)
+    local ok = runM1ddcSetInput(m1ddcPath, spec, spec.alt_input)
+    if not ok then
+        local rolledBack = applyProfileLayout(spec.displayplacer_path, spec.profile, "Alt input rollback")
+        updateSecondExternalState(spec, true)
+        if not rolledBack then
+            notify("toggle_failed", "Failed to send second external input command; rollback failed", 1.5)
+            return
+        end
+        notify("toggle_failed", "Failed to send second external input command", 1.5)
+        return
+    end
 
-    updateSecondExternalState(spec, false)
-    notify("toggle_alt_input", string.format("Second external: %s (mirrored)", spec.alt_label))
+    notify("toggle_alt_input", string.format("Second external: mirrored (%s command sent)", spec.alt_label))
 end
 
 local function handleRepairHotkey()
@@ -730,7 +762,7 @@ function M.init()
         hotkey_utils.bind(toggleMods, toggleKey, {
             module = MODULE_NAME,
             id = "toggle_second_external",
-            description = "Toggle second external display input",
+            description = "Toggle second external mirror/input command",
             toast = false,
             pressed = function()
                 log.i("Event: hotkey triggered (toggle_second_external)")

@@ -9,7 +9,7 @@ This is a modular Hammerspoon configuration for macOS automation, providing wind
 ### Essential Hotkeys
 - `⌃⌘⌥R`: Reload Hammerspoon configuration
 - `⌃⌘⌥H`: Open Hammerspoon console
-- `⌃⌘⌥D`: Toggle the supported home/office second external input (`DisplayPort 1` / `HDMI 1`)
+- `⌃⌘⌥D`: Mirror/unmirror the supported home/office second external and run the best-effort DP/HDMI input command
 - `⌃⌘⌥L`: Repair display layout
 - `⌃⌥⌘N`: Toggle notch hider overlay
 
@@ -76,7 +76,7 @@ Validate PlantUML files with `plantuml --check-syntax <diagram-path>`.
 - `window_management.lua` - Magnet-style window positioning
 - `app_launcher.lua` - Fast application launching
 - `media_controls.lua` - Media and system controls
-- `display_layout.lua` - Repair external display layout via `displayplacer` and toggle the supported home/office second external input via `m1ddc`
+- `display_layout.lua` - Repair external display layout via `displayplacer`, mirror/unmirror the supported second external, and run best-effort `m1ddc` input commands
 - `mouse_management.lua` - Mouse and input device management
 - `wifi_automation.lua` - Network automation and monitoring
 - `keystroke_visualizer.lua` - KeyCastr functionality
@@ -93,7 +93,7 @@ Validate PlantUML files with `plantuml --check-syntax <diagram-path>`.
 ### Configuration (`config/`)
 
 - `hotkeys.lua` - Complete user-editable key binding table; modules keep fallback defaults in code
-- `display_layout.lua` - Displayplacer profiles for screen layout repair plus supported home/office second external `m1ddc` input toggle
+- `display_layout.lua` - Displayplacer profiles for screen layout repair plus supported home/office second external mirror and best-effort `m1ddc` input commands
 - `applications.lua` - Application metadata; launcher and media key combinations are edited only in `config/hotkeys.lua`
 - `keycastr.lua` - KeyCastr settings
 - `wifi.lua` - WiFi automation settings

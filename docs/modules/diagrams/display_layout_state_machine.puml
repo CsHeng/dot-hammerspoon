@@ -1,0 +1,38 @@
+@startuml DisplayLayoutStateMachine
+title Display layout second external toggle state machine
+
+hide empty description
+
+state "Mac input\nextended layout" as MacInput
+state "Sending alt-input command\nrepair suppressed" as SwitchingToAlt
+state "Alt-input intent\nmirrored layout" as AltInput
+state "Sending Mac-input command\nextended layout first" as RestoringToMac
+
+[*] --> MacInput : startup / saved state defaults on
+
+MacInput --> SwitchingToAlt : toggle_second_external
+SwitchingToAlt --> AltInput : mirror succeeds\nthen m1ddc alt-input command returns success
+SwitchingToAlt --> MacInput : mirror fails\nor m1ddc alt-input command fails\nrollback extended layout
+
+AltInput --> RestoringToMac : toggle_second_external\nor repair_display_layout hotkey
+RestoringToMac --> MacInput : extended layout restored\nthen m1ddc Mac-input command returns success
+RestoringToMac --> AltInput : m1ddc Mac-input command fails
+
+MacInput --> MacInput : auto repair\napply matching profile
+SwitchingToAlt --> SwitchingToAlt : screen change / wake\nskip auto repair
+AltInput --> AltInput : screen change / wake\nskip auto repair
+RestoringToMac --> RestoringToMac : screen change / wake\nskip auto repair
+
+note right of SwitchingToAlt
+Set saved state away from Mac input before mirror.
+This prevents the screen watcher from undoing mirror
+while the alternate-input command is still in progress.
+The physical input may remain unchanged on the home dock/KVM path.
+end note
+
+note right of RestoringToMac
+Restore extended layout before sending the Mac-input command.
+The command is best-effort on dock/KVM paths.
+end note
+
+@enduml
