@@ -14,6 +14,15 @@ local function assertTrue(value, message)
     end
 end
 
+local function assertEquals(actual, expected, message)
+    if actual ~= expected then
+        error(
+            string.format("%s: expected %s, got %s", message, tostring(expected), tostring(actual)),
+            2
+        )
+    end
+end
+
 local function contains(value, needle)
     return string.find(value, needle, 1, true) ~= nil
 end
@@ -89,9 +98,9 @@ local function createHarness(options)
             home_second_external_input_toggle = {
                 command = "input",
                 mac_input = 15,
-                alt_input = 17,
+                alt_input = 18,
                 mac_label = "DisplayPort 1",
-                alt_label = "HDMI 1",
+                alt_label = "HDMI 2",
                 reconnect_delay_seconds = 2.0,
             },
         },
@@ -233,12 +242,12 @@ local function createHarness(options)
                 return "", true, nil, 0
             end
 
-            if contains(cmd, "m1ddc") and contains(cmd, " set input 17") then
+            if contains(cmd, "m1ddc") and contains(cmd, " set input 18") then
                 event("m1ddc_alt", cmd)
                 if harness.options.alt_ok == false then
                     return "alt input failed", false, nil, 1
                 end
-                return "17", true, nil, 0
+                return "18", true, nil, 0
             end
 
             if contains(cmd, "m1ddc") and contains(cmd, " set input 15") then
@@ -324,6 +333,15 @@ local function assertNoEventAfter(harness, blockedKind, afterKind)
         )
     end
 end
+
+test("home second external alternate command targets HDMI 2", function()
+    local actualConfig = dofile("config/display_layout.lua")
+    local toggle = actualConfig.display_layout.m1ddc.home_second_external_input_toggle
+
+    assertEquals(toggle.command, "input", "home alternate input command")
+    assertEquals(toggle.alt_input, 18, "home alternate input value")
+    assertEquals(toggle.alt_label, "HDMI 2", "home alternate input label")
+end)
 
 test("toggle saves off state before mirror and runs alt input command after mirror", function()
     local harness = createHarness({ alt_ok = true })

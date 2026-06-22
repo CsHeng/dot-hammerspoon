@@ -22,14 +22,14 @@ config.display_layout = {
         },
 
         -- Home second external (DQ27F165L, UUID D062...) sends DDC input
-        -- commands between the Mac DP feed and spare HDMI input. The home dock/KVM
+        -- commands between the Mac DP feed and spare HDMI 2 input. The home dock/KVM
         -- chain may not physically switch input even when DDC returns success.
         home_second_external_input_toggle = {
             command = "input",
             mac_input = 15,
-            alt_input = 17,
+            alt_input = 18,
             mac_label = "DisplayPort 1",
-            alt_label = "HDMI 1",
+            alt_label = "HDMI 2",
             reconnect_delay_seconds = 2.0,
         },
 

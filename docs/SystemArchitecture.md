@@ -5,7 +5,7 @@
 - Core Services: `core/config_loader.lua`, `core/init_system.lua`, and `core/logger.lua` provide configuration, lifecycle, and logging foundations.
 - Utilities: `utils/` houses reusable helpers (hotkeys, apps, displays, notifications, window math).
 - Feature Modules: `modules/` implements user-facing automation (window management, app launcher, media controls, mouse automation, etc.).
-- Documentation & Diagrams: conceptual notes live in `docs/`; PlantUML diagrams now reside in `docs/diagrams/`.
+- Documentation & Diagrams: stable notes live in `docs/*.md` and `docs/modules/*.md`; system and hardware PlantUML diagrams live in `docs/diagrams/`, while module-specific PlantUML diagrams live in `docs/modules/diagrams/`.
 
 ## Execution Flow
 1. Configuration defaults load and merge with user overrides.
@@ -25,4 +25,4 @@
 - Extend configuration through `config/*.lua` and document new keys alongside module summaries.
 - User-editable key combinations are only edited in `config/hotkeys.lua`; keep fallback defaults in the owning module.
 - Use `utils/hotkey_utils.lua` for all hotkey bindings to maintain announcement policy cohesion.
-- Update diagrams in `docs/diagrams/` as architecture evolves; validate using `plantuml --check-syntax`.
+- Update system and hardware diagrams in `docs/diagrams/`, and module-specific diagrams in `docs/modules/diagrams/`; validate using `plantuml --check-syntax`.

@@ -1,0 +1,37 @@
+@startuml HardwareCabling
+title Hardware cabling topology
+
+skinparam linetype ortho
+skinparam packageStyle rectangle
+
+node "pve-gw" as PVEGW
+node "pve-nas" as PVENAS
+node "Macbook" as MAC
+node "Dell Thunderbolt dock" as DOCK
+node "pc-b760m" as PCB760M
+node "pc-z490m" as PCZ490M
+
+node "4 DP/HDMI IN, 2 OUT KVM\n4 computers share 2 monitors\nIN1..IN4 + OUT DP/HDMI + USB console" as KVM
+node "Monitor 1\nDP1 + HDMI1 + HDMI2" as M1
+node "Monitor 2\nDP1 + HDMI1 + HDMI2" as M2
+node "Keyboard1 + Mouse1" as KM1
+
+PVEGW --> KVM : HDMI -> IN1 HDMI1\nUSB -> IN1 USB1
+PVENAS --> KVM : HDMI -> IN2 HDMI2\nUSB -> IN2 USB2
+MAC --> DOCK : Thunderbolt
+DOCK --> KVM : DP -> IN3 DP3\nHDMI -> IN3 HDMI3\nUSB -> IN3 USB3
+PCB760M --> KVM : DP -> IN4 DP4\nHDMI -> IN4 HDMI4\nUSB -> IN4 USB4
+
+KM1 --> KVM : shared keyboard/mouse
+KVM --> M1 : OUT DP1 -> DP1
+KVM --> M2 : OUT HDMI1 -> HDMI2
+
+PCZ490M --> M2 : video -> direct input\n(HDMI1 or DP1 pending verification)
+
+note right of PCZ490M
+The exact pc-z490m monitor input is pending verification.
+The stable topology is pc-z490m bypassing KVM
+and using only Monitor 2.
+end note
+
+@enduml

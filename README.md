@@ -58,7 +58,8 @@ accidental double space-switches.
 
 - System overviews: `docs/SystemArchitecture.md`, `docs/ConfigurationSystem.md`, `docs/ModuleSystem.md`
 - Module and utility summaries: `docs/modules/*.md`
-- Diagrams: system-level in `docs/*.puml`, module-specific in `docs/modules/diagrams/`
+- Hardware cabling: `docs/HardwareCabling.md`
+- Diagrams: system and hardware PlantUML files in `docs/diagrams/*.puml`, module-specific PlantUML files in `docs/modules/diagrams/*.puml`
 - Stage artifacts: `docs/plans/` is retained for historical planning context but excluded from default docs search by `docs/.ignore`; use `rg --files --no-ignore docs` when historical plans are needed.
 
 Validate PlantUML files with `plantuml --check-syntax <diagram-path>`.
@@ -117,7 +118,7 @@ Validate PlantUML files with `plantuml --check-syntax <diagram-path>`.
 ├── modules/                    # Feature modules
 ├── utils/                      # Utility modules
 ├── config/                     # Configuration files
-└── docs/                       # Documentation (plus PlantUML diagrams in docs/diagrams/)
+└── docs/                       # Documentation, system diagrams, and module diagrams
 ```
 
 ## Requirements

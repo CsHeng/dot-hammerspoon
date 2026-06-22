@@ -21,6 +21,7 @@ package "Modules" {
 
 package "Docs & Diagrams" {
   [docs/*.md]
+  [docs/diagrams/*.puml]
   [docs/modules/*]
   [docs/modules/diagrams/*]
 }

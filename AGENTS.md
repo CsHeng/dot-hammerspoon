@@ -9,8 +9,9 @@ For project overview, hotkey reference, and setup instructions, see [README.md](
 - Do not treat `m1ddc` as a replacement for `displayplacer`; it does not manage macOS display topology.
 - Do not rely on `displayplacer enabled:false/enabled:true` as a reversible second-monitor toggle. On this setup it is not a stable restore path.
 - `⌃⌘⌥D` mirrors/unmirrors the second external display and runs a best-effort `m1ddc` input command for `home`, `home_open`, `office`, `office_open`, `office_typec`, and `office_typec_open`.
-- Home second external `DQ27F165L` (`D0627D9C-EEDB-417D-88ED-C5FE3663710D`): Mac `DisplayPort 1` -> `15`; alternate `HDMI 1` -> `17`. The home chain currently goes through a Dell Thunderbolt dock and hardware KVM, so `m1ddc` may return success without physically switching display input; accepted workflow is mirror first, switch away with the hardware KVM, use the second machine, then switch the KVM back.
+- Home second external `DQ27F165L` (`D0627D9C-EEDB-417D-88ED-C5FE3663710D`): Mac `DisplayPort 1` -> `15`; alternate `HDMI 2` -> `18`. The first home external monitor remains on Mac DP; the second home external monitor is the HDMI 2 target. The home chain currently goes through a Dell Thunderbolt dock and hardware KVM, so `m1ddc` may return success without physically switching display input; accepted workflow is mirror first, switch away with the hardware KVM, use the second machine, then switch the KVM back.
 - Office second external `DELL P2422H` (`E5AD9F0D-0529-4234-ABF2-4053381A7C58`): Mac `DisplayPort 1` -> `15`; alternate `HDMI 1` -> `17`.
+- Detailed desk cabling lives in `docs/HardwareCabling.md`; physical screens are monitors, the KVM is the `4 computers share 2 monitors` class, and `pc-z490m` bypasses the KVM with a direct Monitor 2 video path.
 - Switching away first applies mirror mode via `displayplacer`, saves non-Mac-input state to suppress auto-repair, then sends the alternate-input command via `m1ddc`; switching back restores extended layout from stored `profile_key` before sending the Mac-input command.
 - `⌃⌘⌥L` repairs layout and, when needed, restores the supported second external to Mac input.
 
@@ -60,9 +61,9 @@ For project overview, hotkey reference, and setup instructions, see [README.md](
 - Keep human-oriented overview and hotkey reference in `README.md`.
 - Keep AI-specific operating rules and constraints in `AGENTS.md`.
 - Keep `CLAUDE.md` as a symlink to `AGENTS.md`.
-- Treat root `README.md`, root `AGENTS.md`, and `docs/modules/*.md` as stable truth roots.
+- Treat root `README.md`, root `AGENTS.md`, `docs/*.md`, and `docs/modules/*.md` as stable truth roots.
 - Treat `docs/plans/` as stage artifacts retained for history; it is excluded from default docs search by `docs/.ignore`.
 - Update module docs in `docs/modules/`.
-- Add/update PlantUML diagrams in `docs/diagrams/`.
+- Add/update system and hardware PlantUML diagrams in `docs/diagrams/`; keep module-specific PlantUML diagrams in `docs/modules/diagrams/`.
 - Keep `docs/SystemArchitecture.md` in sync with architectural changes
 - Check PlantUML syntax before finalizing

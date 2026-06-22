@@ -24,10 +24,12 @@
 ## Entry Points
 - Implementation: `modules/display_layout.lua`.
 - State machine: `docs/modules/diagrams/display_layout_state_machine.puml`.
+- Hardware cabling: `docs/HardwareCabling.md`.
 
 ## Notes
 - Profiles are matched by detected screen count + required screen ids; first match wins (see `display_layout.profile_order`).
 - `hz` and `color_depth` are optional in `displayplacer`; omitting them lets the highest available mode win (useful when HDMI renegotiates).
 - Auto-repair re-checks the saved input state when delayed repair attempts fire; non-hotkey repair is skipped while the second external is away from the Mac input.
-- On the home path, the display is behind a Dell Thunderbolt dock and hardware KVM. DDC input commands can return success without physically switching the monitor input, so the stable workflow is mirror first, use the hardware KVM to leave the Mac path, then switch the KVM back before restoring extended layout.
+- On the home path, the first external monitor remains on Mac DP and the second external monitor is the HDMI 2 alternate-input target (`18`). The monitor path is behind a Dell Thunderbolt dock and hardware KVM; DDC input commands can return success without physically switching the monitor input, so the stable workflow is mirror first, use the hardware KVM to leave the Mac path, then switch the KVM back before restoring extended layout.
+- The desk cabling records KVM OUT HDMI1 feeding Monitor 2 HDMI2, while `pc-z490m` bypasses the KVM and uses a direct Monitor 2 input pending verification (`HDMI1` or `DP1`).
 - Tool boundary: `displayplacer` repairs layout, origin, and main-display assignment; `m1ddc` only controls DDC features such as monitor input source.
