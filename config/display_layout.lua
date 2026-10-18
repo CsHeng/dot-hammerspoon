@@ -73,8 +73,7 @@ config.display_layout = {
             -- display is open. Adjust later if needed.
             require_total_screens = 2,
 
-            -- NOTE: hz/color_depth are intentionally omitted so displayplacer picks the
-            -- highest available (helps when HDMI renegotiates to lower refresh rates).
+            -- Leave refresh rate unspecified unless a display needs a stability cap.
             screens = {
                 {
                     id = "F612A96D-269C-436C-92B1-E8C47E6272E6",
@@ -87,6 +86,7 @@ config.display_layout = {
                 {
                     id = "D0627D9C-EEDB-417D-88ED-C5FE3663710D",
                     res = "2560x1440",
+                    hz = 60,
                     scaling = "off",
                     origin = {2560, 0},
                     degree = 0,
