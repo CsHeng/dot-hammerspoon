@@ -14,8 +14,8 @@ config.applications = {
         {id = 'finder', appname = 'Finder', bundleid = 'com.apple.Finder'},
         {id = 'hammerspoon', appname = 'Hammerspoon', bundleid = 'org.hammerspoon.Hammerspoon'},
         -- {id = 'ghostty', appname = 'Ghostty', bundleid = 'com.mitchellh.ghostty'},
-        -- {id = 'kitty', appname = 'kitty', bundleid = 'net.kovidgoyal.kitty'},
-        {id = 'wezterm', appname = 'WezTerm', bundleid = 'com.github.wez.wezterm'},
+        {id = 'kitty', appname = 'kitty', bundleid = 'net.kovidgoyal.kitty'},
+        -- {id = 'wezterm', appname = 'WezTerm', bundleid = 'com.github.wez.wezterm'},
     },
 
     media_controls = {
@@ -51,14 +51,13 @@ config.browsers = {
 config.expose_app_filter = {
     -- Allow these apps in expose
     allowed = {
-        'WezTerm',
+        'kitty',
         'Finder',
         'Google Chrome',
         'Visual Studio Code',
         'WeChat',
         'QQ',
-        'DingTalk',
-        'WezTerm'
+        'DingTalk'
     },
 
     -- Browser-specific expose

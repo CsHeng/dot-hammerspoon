@@ -33,7 +33,8 @@ config.hotkeys = {
             chrome = {"cmd", "alt", "G"},
             finder = {"cmd", "alt", "F"},
             hammerspoon = {"cmd", "alt", "H"},
-            wezterm = {"F10"},
+            kitty = {"F10"},
+            -- wezterm = {"F10"},
         },
         restarts = {}
     },

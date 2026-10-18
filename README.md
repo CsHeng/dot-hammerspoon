@@ -13,6 +13,8 @@ This is a modular Hammerspoon configuration for macOS automation, providing wind
 - `⌃⌘⌥L`: Repair display layout
 - `⌃⌥⌘N`: Toggle notch hider overlay
 
+For home display profiles, refresh-rate constraints, automatic repair behavior, and intermittent black-screen diagnosis, see [Display Layout](docs/modules/DisplayLayout.md).
+
 ### Window Management
 - `⌃⌥ARROWS`: Half-screen positioning
 - `⌃⌥⇧ARROWS`: Quarter-screen positioning
@@ -28,7 +30,7 @@ This is a modular Hammerspoon configuration for macOS automation, providing wind
 - `⌘⌥G`: Google Chrome
 - `⌘⌥F`: Finder
 - `⌘⌥H`: Hammerspoon
-- `F10`: WezTerm
+- `F10`: Kitty
 
 ### Media Controls
 - `⌘⌃⌥←/→`: Previous/Next track
